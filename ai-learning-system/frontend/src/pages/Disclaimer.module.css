@@ -1,0 +1,110 @@
+.overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6); 
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.modal {
+  background-color: var(--color-bg-main);
+  width: 100%;
+  max-width: 680px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h2 {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: var(--spacing-sm);
+}
+
+.header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.content {
+  padding: 32px 40px;
+  overflow-y: auto;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.section h3 {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: var(--spacing-sm);
+}
+
+.section p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.footer {
+  padding: 24px 40px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-bg-sidebar);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.checkboxLabel span {
+  font-size: var(--text-sm);
+  color: var(--color-text-main);
+}
+
+.agreeBtn {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  padding: 10px 32px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.agreeBtn:hover:not(.disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.agreeBtn.disabled {
+  background-color: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}

@@ -1,0 +1,50 @@
+:root {
+  /* Brand Colors */
+  --color-primary: #004ac6;
+  --color-primary-hover: #003ea8;
+  --color-primary-bg: #eaf0ff;
+  
+  /* Surface & Background */
+  --color-bg-main: #ffffff;
+  --color-bg-sidebar: #f8fafc;
+  --color-bg-hover: #f1f5f9;
+  
+  /* Borders */
+  --color-border: #e2e8f0;
+  
+  /* Text Colors */
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+  
+  /* Typography */
+  --font-inter: 'Inter', sans-serif;
+  --text-h1: 30px;
+  --text-h2: 24px;
+  --text-body: 16px;
+  --text-sm: 14px;
+  --text-xs: 12px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+}
+
+body {
+  font-family: var(--font-inter);
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+}
+
+* {
+  box-sizing: border-box;
+}

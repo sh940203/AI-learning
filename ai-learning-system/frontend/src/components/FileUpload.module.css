@@ -1,0 +1,125 @@
+.uploadZone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all 0.2s ease;
+  background-color: var(--color-bg-sidebar);
+}
+
+.uploadZone.dragging {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+}
+
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  background-color: var(--color-bg-main);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-lg);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.uploadZone h3 {
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--color-text-main);
+  margin-bottom: var(--spacing-sm);
+}
+
+.uploadZone p {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.uploadBtn {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.uploadBtn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.hasFile {
+  border-style: solid;
+  border-color: var(--color-border);
+  background-color: var(--color-bg-main);
+  cursor: default;
+}
+
+.uploadProgressView {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.fileDetails {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fileIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.fileInfoText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.fileName {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSize {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.progressBarWrapper {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.progressText {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0 !important;
+}
