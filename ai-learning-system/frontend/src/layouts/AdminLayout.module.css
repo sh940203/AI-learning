@@ -14,11 +14,55 @@
   display: flex;
   flex-direction: column;
   padding: var(--spacing-xl) 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed {
+  width: 80px;
 }
 
 .logoContainer {
   padding: 0 var(--spacing-xl);
   margin-bottom: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 48px;
+  gap: 12px;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.3s ease, width 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .logoText {
+  opacity: 0;
+  width: 0;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.toggleBtn:hover {
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
 }
 
 .logoContainer h2 {
@@ -52,6 +96,18 @@
   font-weight: 500;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.navItemText {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .navItemText {
+  opacity: 0;
+  width: 0;
 }
 
 .navItem:hover {
@@ -65,12 +121,28 @@
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
+.sidebar.collapsed .navItem {
+  justify-content: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.sidebar.collapsed .navItem.active {
+  border-left: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-bg);
+}
+
 .sidebarBottom {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   margin-top: auto;
   padding: var(--spacing-md) var(--spacing-md) 0;
+}
+
+.sidebar.collapsed .sidebarBottom {
+  padding: var(--spacing-md) 0 0;
+  align-items: center;
 }
 
 .adminProfile {
@@ -81,6 +153,13 @@
   border-top: 1px solid var(--color-border);
   padding-top: var(--spacing-md);
   margin-bottom: var(--spacing-sm);
+  overflow: hidden;
+}
+
+.collapsedProfile {
+  justify-content: center;
+  border-top: none;
+  padding: var(--spacing-sm) 0;
 }
 
 .avatar {
@@ -90,11 +169,21 @@
   background-color: var(--color-text-main);
   background-image: url('https://i.pravatar.cc/150?img=11');
   background-size: cover;
+  flex-shrink: 0;
 }
 
 .profileInfo {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar.collapsed .profileInfo {
+  opacity: 0;
+  width: 0;
 }
 
 .profileInfo .name {
@@ -120,6 +209,13 @@
   cursor: pointer;
   text-align: left;
   border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .ghostBtn {
+  justify-content: center;
+  padding: var(--spacing-sm) 0;
+  width: 100%;
 }
 
 .ghostBtn:hover {

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Bold, Italic, Underline, Palette, Type, ListOrdered, List, Code, Sigma, FileAudio, Superscript as SupIcon, Subscript as SubIcon, Image as ImageIcon, Eraser, CircleDot, CheckSquare, ToggleLeft, Edit3, Layers, Smartphone, Tablet, Monitor, Eye, Check, X, Copy, ClipboardPaste, Undo as UndoIcon, Redo as RedoIcon, AlignLeft, Headphones } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Upload, Bold, Italic, Underline, Palette, Type, ListOrdered, List, Code, Sigma, FileAudio, Superscript as SupIcon, Subscript as SubIcon, Image as ImageIcon, Eraser, CircleDot, CheckSquare, ToggleLeft, Edit3, Layers, Smartphone, Tablet, Monitor, Eye, Check, X, Copy, ClipboardPaste, Undo as UndoIcon, Redo as RedoIcon, AlignLeft, Headphones, Star } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -14,6 +15,7 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import styles from './QuestionBank.module.css';
 import MathEditorModal from '../../components/MathEditorModal';
+import StudentExamPreview from '../../components/exam/StudentExamPreview';
 
 const renderLatexInHtml = (html) => {
   if (!html) return '';
@@ -94,7 +96,7 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
   const handleTypeChange = (newType) => {
     let newOptions = [];
     if (newType === 'tf') newOptions = [{ id: 'O', text: '正確 (True)', isCorrect: true }, { id: 'X', text: '錯誤 (False)', isCorrect: false }];
-    else if (newType === 'single' || newType === 'multiple' || newType === 'listening') newOptions = [{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }];
+    else if (newType === 'single' || newType === 'multiple') newOptions = [{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }];
     else if (newType === 'fill') newOptions = [{ id: '1', text: '標準答案', isCorrect: true }];
     else if (newType === 'short') newOptions = [{ id: '1', text: '參考解答', isCorrect: true }];
     updateSubQuestion(sq.id, { type: newType, options: newOptions });
@@ -107,6 +109,10 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
   const handleToggleCorrect = (optId) => {
     if (sq.type === 'single' || sq.type === 'tf' || sq.type === 'fill') updateSubQuestion(sq.id, { options: sq.options.map(o => ({ ...o, isCorrect: o.id === optId })) });
     else if (sq.type === 'multiple') updateSubQuestion(sq.id, { options: sq.options.map(o => o.id === optId ? { ...o, isCorrect: !o.isCorrect } : o) });
+  };
+
+  const handleExplanationChange = (text) => {
+    updateSubQuestion(sq.id, { explanation: text });
   };
 
   return (
@@ -128,7 +134,6 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
               <button className={`${styles.typeBtn} ${sq.type === 'tf' ? styles.active : ''}`} onClick={() => handleTypeChange('tf')}>是非</button>
               <button className={`${styles.typeBtn} ${sq.type === 'fill' ? styles.active : ''}`} onClick={() => handleTypeChange('fill')}>填空</button>
               <button className={`${styles.typeBtn} ${sq.type === 'short' ? styles.active : ''}`} onClick={() => handleTypeChange('short')}>簡答</button>
-              <button className={`${styles.typeBtn} ${sq.type === 'listening' ? styles.active : ''}`} onClick={() => handleTypeChange('listening')}>聽力</button>
             </div>
           </div>
           
@@ -147,13 +152,19 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label}>選項設定</label>
+            <label className={styles.label}>
+              {(sq.type === 'fill' || sq.type === 'short') ? '文字答案設定' : '選項設定'}
+            </label>
             <div className={styles.optionsList}>
               {sq.options.map((opt) => (
                 <div key={opt.id} className={styles.optionRow}>
-                  <div className={`${styles.optionLabel} ${opt.isCorrect ? styles.labelCorrect : ''}`}>{opt.id}</div>
-                  <input type="text" className={styles.optionInput} value={opt.text} onChange={(e) => handleOptionChange(opt.id, e.target.value)} placeholder={`輸入選項 ${opt.id} 內容...`} />
-                  <button className={`${styles.checkBtn} ${opt.isCorrect ? styles.checked : ''}`} onClick={() => handleToggleCorrect(opt.id)}><Check size={16} /></button>
+                  {sq.type !== 'fill' && sq.type !== 'short' && (
+                    <div className={`${styles.optionLabel} ${opt.isCorrect ? styles.labelCorrect : ''}`}>{opt.id}</div>
+                  )}
+                  <input type="text" className={styles.optionInput} value={opt.text} onChange={(e) => handleOptionChange(opt.id, e.target.value)} placeholder={(sq.type === 'fill' || sq.type === 'short') ? '請輸入標準答案/參考解答...' : `輸入選項 ${opt.id} 內容...`} />
+                  {sq.type !== 'fill' && sq.type !== 'short' && (
+                    <button className={`${styles.checkBtn} ${opt.isCorrect ? styles.checked : ''}`} onClick={() => handleToggleCorrect(opt.id)}><Check size={16} /></button>
+                  )}
                 </div>
               ))}
             </div>
@@ -175,6 +186,17 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
               </div>
             </div>
           )}
+
+          <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+            <label className={styles.label}>標準答案補充 / 題目詳解 (選填)</label>
+            <textarea 
+              className={styles.optionInput} 
+              style={{ minHeight: '60px', padding: '10px', resize: 'vertical' }}
+              placeholder="可輸入此子題的標準答案補充說明、計算過程或詳解..."
+              value={sq.explanation || ''}
+              onChange={(e) => handleExplanationChange(e.target.value)}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -182,23 +204,48 @@ const SubQuestionEditor = ({ sq, index, updateSubQuestion, removeSubQuestion, on
 };
 
 const QuestionBank = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // 從 ExamSetup 傳過來的設定，如果沒有則使用預設值
+  const [examConfig, setExamConfig] = useState(() => {
+    const config = location.state?.examConfig || {
+      name: '未命名考卷',
+      subject: '未分類',
+      timeLimit: 60,
+      defaultScore: 2,
+      scoringMode: 'standard'
+    };
+    
+    // 如果從題庫管理列表傳來，ID 會是 _id
+    if (config._id && !config.examId) {
+      config.examId = config._id;
+    }
+    
+    return config;
+  });
+
   const [activeType, setActiveType] = useState('single');
   const [wordLimit, setWordLimit] = useState(0);
+  const [qScore, setQScore] = useState(examConfig.defaultScore || 2);
+  const [qDifficulty, setQDifficulty] = useState(3);
+  const [qCategory, setQCategory] = useState('');
+  const [qExplanation, setQExplanation] = useState('');
+  
   const [questionHTML, setQuestionHTML] = useState('');
   const [showArticleDrawer, setShowArticleDrawer] = useState(false);
   const [subQuestions, setSubQuestions] = useState([
-    { id: 1, type: 'single', options: [{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }] },
-    { id: 2, type: 'fill', options: [{ id: '1', text: '標準答案', isCorrect: true }] }
+    { id: 1, type: 'single', score: 2, options: [{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }], explanation: '' },
+    { id: 2, type: 'fill', score: 2, options: [{ id: '1', text: '標準答案', isCorrect: true }], explanation: '' }
   ]);
   
   const [isMathModalOpen, setIsMathModalOpen] = useState(false);
   const [activeMathEditor, setActiveMathEditor] = useState(null);
 
-  const openMathModal = (editorInstance) => {
-    setActiveMathEditor(editorInstance);
-    setIsMathModalOpen(true);
-  };
-  
+  // 考卷導覽列的狀態 (三欄式)
+  const [examQuestions, setExamQuestions] = useState([]);
+  const [activeQuestionId, setActiveQuestionId] = useState(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -216,6 +263,96 @@ const QuestionBank = () => {
       setQuestionHTML(editor.getHTML());
     }
   });
+
+  // 讀取既有題目
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      if (!examConfig.examId) return;
+      try {
+        const res = await fetch(`/api/questions?examId=${examConfig.examId}`);
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          // 將後端資料轉換為導覽列格式
+          const formatted = data.data.map((q, idx) => ({
+            id: q._id,
+            label: `第 ${idx + 1} 題`,
+            type: q.type,
+            status: 'saved',
+            data: q // 存放完整資料
+          }));
+          setExamQuestions(formatted);
+          setActiveQuestionId(formatted[0].id);
+        } else {
+          // 如果沒題目，建立一個預設的第一題
+          const firstId = Date.now();
+          setExamQuestions([{ id: firstId, label: '第 1 題', type: 'single', status: 'draft' }]);
+          setActiveQuestionId(firstId);
+        }
+      } catch (err) {
+        console.error('載入題目失敗:', err);
+      }
+    };
+    fetchQuestions();
+  }, [examConfig.examId]);
+
+  // 當切換題目時，載入該題資料
+  useEffect(() => {
+    if (!activeQuestionId) return;
+    const q = examQuestions.find(item => item.id === activeQuestionId);
+    
+    if (q && q.status === 'saved' && q.data) {
+      // 載入已存資料
+      const d = q.data;
+      setActiveType(d.type);
+      setQuestionHTML(d.html || '');
+      if (editor) editor.commands.setContent(d.html || '');
+      setOptions(d.options || []);
+      setQExplanation(d.explanation || '');
+      setQScore(d.score || 2);
+      setQDifficulty(d.difficulty || 3);
+      setWordLimit(d.wordLimit || 0);
+      setSubQuestions(d.subQuestions || []);
+    } else {
+      // 新題目，執行重置
+      setQuestionHTML('');
+      if (editor) editor.commands.setContent('');
+      setQExplanation('');
+      setQCategory('');
+      setQScore(examConfig.defaultScore || 2);
+      setQDifficulty(3);
+      setWordLimit(0);
+      setSubQuestions([]);
+      if (q) handleTypeChange(q.type || 'single');
+    }
+  }, [activeQuestionId, editor]);
+
+  const openMathModal = (editorInstance) => {
+    setActiveMathEditor(editorInstance);
+    setIsMathModalOpen(true);
+  };
+
+  // 當切換題目時，重置編輯器內容與選項
+  useEffect(() => {
+    // 只有當切換 ID 時才執行
+    if (!activeQuestionId) return;
+    
+    // 重置基礎欄位
+    setQuestionHTML('');
+    if (editor) {
+      editor.commands.setContent('');
+    }
+    setQExplanation('');
+    setQCategory('');
+    setQScore(examConfig.defaultScore || 2);
+    setQDifficulty(3);
+    setWordLimit(0);
+    
+    // 根據當前題目類型重置選項
+    const activeQ = examQuestions.find(q => q.id === activeQuestionId);
+    if (activeQ) {
+      handleTypeChange(activeQ.type || 'single');
+    }
+  }, [activeQuestionId, editor]);
 
   // 設定初始值給右側預覽
   useEffect(() => {
@@ -241,17 +378,103 @@ const QuestionBank = () => {
   const [codeLang, setCodeLang] = useState('javascript');
   const [codeText, setCodeText] = useState('');
 
+  // 可拖拉預覽區寬度與側欄狀態
+  const [previewWidth, setPreviewWidth] = useState(400);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (previewMode === 'mobile') {
+      setPreviewWidth(400);
+      setIsNavCollapsed(false);
+    } else if (previewMode === 'tablet') {
+      setPreviewWidth(600);
+    } else if (previewMode === 'desktop') {
+      setPreviewWidth(840);
+      setIsNavCollapsed(true);
+    }
+  }, [previewMode]);
+
+  const handleDoubleClickResizer = () => {
+     if (previewMode === 'mobile') {
+       setPreviewWidth(400);
+       setIsNavCollapsed(false);
+     } else if (previewMode === 'tablet') {
+       setPreviewWidth(600);
+     } else if (previewMode === 'desktop') {
+       setPreviewWidth(840);
+       setIsNavCollapsed(true);
+     }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      
+      // 計算側欄寬度（全域 sidebar 260px + gap）
+      const sidebarWidth = 260;
+      const navWidth = isNavCollapsed ? 80 : 240;
+      const gaps = 80; // grid gaps + resizer + padding
+      const minEditorWidth = 480; // 編輯器最小寬度保護
+      
+      const availableWidth = document.body.clientWidth - sidebarWidth;
+      const newWidth = availableWidth - (e.clientX - sidebarWidth);
+      let finalWidth = newWidth;
+      
+      // 磁吸效應 (Snapping)
+      if (Math.abs(newWidth - 400) < 30) finalWidth = 400;
+      else if (Math.abs(newWidth - 600) < 30) finalWidth = 600;
+      else if (Math.abs(newWidth - 840) < 30) finalWidth = 840;
+      
+      // 剛性保護限制
+      if (finalWidth < 320) finalWidth = 320;
+      const maxAllowedWidth = availableWidth - navWidth - gaps - minEditorWidth;
+      if (finalWidth > maxAllowedWidth) finalWidth = maxAllowedWidth;
+      
+      // 動態聯動收合導覽列
+      if (finalWidth > 650 && !isNavCollapsed) {
+          setIsNavCollapsed(true);
+      } else if (finalWidth <= 500 && isNavCollapsed && previewMode === 'mobile') {
+          setIsNavCollapsed(false);
+      }
+      
+      setPreviewWidth(finalWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.body.style.cursor = 'default';
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+    };
+  }, [isDragging, isNavCollapsed]);
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [showSizeMenu, setShowSizeMenu] = useState(false);
 
-  const handleTypeChange = (type) => {
+  const handleTypeChange = useCallback((type) => {
     setActiveType(type);
     if (type === 'tf') setOptions([{ id: 'O', text: '正確 (True)', isCorrect: true }, { id: 'X', text: '錯誤 (False)', isCorrect: false }]);
-    else if (type === 'single' || type === 'multiple' || type === 'listening') setOptions([{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }]);
-    else if (type === 'fill') setOptions([{ id: '1', text: '標準答案...', isCorrect: true }]);
-    else if (type === 'short') setOptions([{ id: '1', text: '參考解答...', isCorrect: true }]);
+    else if (type === 'single' || type === 'multiple') setOptions([{ id: 'A', text: '選項 A', isCorrect: true }, { id: 'B', text: '選項 B', isCorrect: false }, { id: 'C', text: '選項 C', isCorrect: false }, { id: 'D', text: '選項 D', isCorrect: false }]);
+    else if (type === 'fill') setOptions([{ id: '1', text: '標準答案', isCorrect: true }]);
+    else if (type === 'short') setOptions([{ id: '1', text: '參考解答', isCorrect: true }]);
     else setOptions([]); 
-  };
+  }, []);
 
   const handleToggleCorrect = (id) => {
     if (activeType === 'single' || activeType === 'tf') setOptions(options.map(opt => ({ ...opt, isCorrect: opt.id === id })));
@@ -262,12 +485,34 @@ const QuestionBank = () => {
     setOptions(options.map(opt => opt.id === id ? { ...opt, text: newText } : opt));
   };
 
-  const handleMediaUpload = (e, type) => {
+  const handleMediaUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file || !editor) return;
-    const url = URL.createObjectURL(file);
-    if (type === 'image') editor.chain().focus().setResizableImage({ src: url }).run();
-    else if (type === 'audio') editor.chain().focus().setAudio({ src: url }).run();
+
+    if (type === 'image') {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const res = await fetch('/api/upload/image', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          editor.chain().focus().setResizableImage({ src: data.url }).run();
+        } else {
+          alert('圖片上傳失敗：' + data.message);
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('無法連線至上傳伺服器');
+      }
+    } else if (type === 'audio') {
+      const url = URL.createObjectURL(file);
+      editor.chain().focus().setAudio({ src: url }).run();
+    }
     e.target.value = '';
   };
 
@@ -308,22 +553,116 @@ const QuestionBank = () => {
     );
   };
 
+  const handleSaveQuestion = async () => {
+    try {
+      const payload = {
+        type: activeType,
+        html: questionHTML,
+        options: activeType !== 'group' ? options : [],
+        wordLimit: (activeType === 'fill' || activeType === 'short') ? wordLimit : 0,
+        subQuestions: activeType === 'group' ? subQuestions : [],
+        explanation: qExplanation,
+        score: examConfig.defaultScore || 2,
+        examId: examConfig.examId || null,
+        status: 'draft'
+      };
+
+      const activeQ = examQuestions.find(q => q.id === activeQuestionId);
+      const isExisting = activeQ?.status === 'saved' && activeQ?.data?._id;
+      
+      const res = await fetch(isExisting ? `/api/questions/${activeQ.data._id}` : '/api/questions', {
+        method: isExisting ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('🎉 題目儲存成功！');
+        // 更新本地導覽列狀態
+        setExamQuestions(prev => prev.map(q => 
+          q.id === activeQuestionId 
+            ? { ...q, status: 'saved', data: data.data } 
+            : q
+        ));
+      } else {
+        alert('儲存失敗：' + data.message);
+      }
+    } catch (error) {
+      console.error('儲存錯誤:', error);
+      alert('儲存失敗：' + error.message + '\n請確認後端已啟動。');
+    }
+  };
+
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.breadcrumbRow}>
         <div className={styles.breadcrumb}>
-          <span className={styles.muted}>題庫管理</span>
+          <button className={styles.breadcrumbBtn} onClick={() => navigate('/admin/questions')}>題庫管理</button>
           <span className={styles.separator}>&gt;</span>
-          <span className={styles.active}>進階編輯器</span>
+          <button 
+            className={styles.breadcrumbBtn} 
+            onClick={() => navigate('/admin/questions/exam/new', { state: { examConfig } })}
+          >
+            考卷基本設定
+          </button>
+          <span className={styles.separator}>&gt;</span>
+          <span className={styles.active}>{examConfig.title || '進階編輯器'}</span>
         </div>
       </div>
 
-      <div className={styles.mainGrid}>
+      <div 
+        className={styles.mainGrid}
+        style={{ gridTemplateColumns: `${isNavCollapsed ? '80px' : '240px'} 1fr 16px ${previewWidth}px` }}
+      >
+        {/* Left Column: Navigator */}
+        <div className={`${styles.navigatorSection} ${isNavCollapsed ? styles.collapsedNav : ''}`}>
+          <div className={styles.navHeader}>
+            {!isNavCollapsed && <span>考卷結構</span>}
+            <span className={styles.navCount}>{isNavCollapsed ? examQuestions.length : `共 ${examQuestions.length} 題`}</span>
+          </div>
+          
+          <div className={styles.navList}>
+            {examQuestions.map((q, idx) => (
+              <div 
+                key={q.id} 
+                className={`${styles.navItem} ${activeQuestionId === q.id ? styles.active : ''}`}
+                onClick={() => setActiveQuestionId(q.id)}
+                title={q.label}
+              >
+                {isNavCollapsed ? (
+                  <span className={styles.navNumBadge}>{idx + 1}</span>
+                ) : (
+                  <span>{q.label}</span>
+                )}
+                <div className={`${styles.statusDot} ${q.status === 'draft' ? styles.statusDraft : styles.statusSaved}`} title={q.status === 'draft' ? '草稿' : '已儲存'} />
+              </div>
+            ))}
+            
+            <button className={styles.addQuestionBtn} onClick={() => {
+              const newId = Date.now();
+              setExamQuestions([...examQuestions, { id: newId, label: `第 ${examQuestions.length + 1} 題`, type: 'single', status: 'draft' }]);
+              setActiveQuestionId(newId);
+            }} title="新增下一題">
+              {isNavCollapsed ? '+' : '+ 新增下一題'}
+            </button>
+          </div>
+          
+          <div className={styles.navFooter}>
+            <button className={styles.previewAllBtn} title="預覽全卷">
+              {isNavCollapsed ? <Eye size={18} /> : '預覽全卷'}
+            </button>
+            <button className={styles.publishBtn} title="確認無誤，正式發布">
+              {isNavCollapsed ? <Upload size={18} /> : '確認無誤，正式發布'}
+            </button>
+          </div>
+        </div>
+
+        {/* Middle Column: Editor */}
         <div className={styles.editorSection}>
           <div className={styles.editorHeader}>
-            <h2 className={styles.sectionTitle}>編輯新題目</h2>
+            <h2 className={styles.sectionTitle}>編輯題目 ({examQuestions.find(q => q.id === activeQuestionId)?.label})</h2>
             <button className={styles.outlineBtn} onClick={() => fileInputRef.current?.click()}>
-              <Upload size={16} /> 從 Excel 模板匯入
+              <Upload size={16} /> 從 Excel 匯入
             </button>
             <input type="file" accept=".xlsx, .xls" ref={fileInputRef} style={{ display: 'none' }} />
           </div>
@@ -337,7 +676,6 @@ const QuestionBank = () => {
               <button className={`${styles.typeBtn} ${activeType === 'fill' ? styles.active : ''}`} onClick={() => handleTypeChange('fill')}><Edit3 size={20} /> 填空題</button>
               <button className={`${styles.typeBtn} ${activeType === 'short' ? styles.active : ''}`} onClick={() => handleTypeChange('short')}><AlignLeft size={20} /> 簡答題</button>
               <button className={`${styles.typeBtn} ${activeType === 'group' ? styles.active : ''}`} onClick={() => handleTypeChange('group')}><Layers size={20} /> 題組</button>
-              <button className={`${styles.typeBtn} ${activeType === 'listening' ? styles.active : ''}`} onClick={() => handleTypeChange('listening')}><Headphones size={20} /> 聽力題</button>
             </div>
           </div>
 
@@ -398,9 +736,6 @@ const QuestionBank = () => {
                 <input type="file" accept="image/*" ref={imageInputRef} style={{display:'none'}} onChange={(e) => handleMediaUpload(e, 'image')} />
                 
                 <button className={styles.toolBtn} onClick={() => openMathModal(editor)} title="插入公式"><Sigma size={16} /></button>
-                
-                <button className={styles.toolBtn} onClick={() => audioInputRef.current?.click()} title="插入音訊"><FileAudio size={16} /></button>
-                <input type="file" accept="audio/*" ref={audioInputRef} style={{display:'none'}} onChange={(e) => handleMediaUpload(e, 'audio')} />
               </div>
 
               {/* Tiptap Editor Context */}
@@ -410,15 +745,22 @@ const QuestionBank = () => {
             </div>
           </div>
 
-          {(activeType === 'single' || activeType === 'multiple' || activeType === 'tf' || activeType === 'fill') && (
+          {(activeType === 'single' || activeType === 'multiple' || activeType === 'tf' || activeType === 'fill' || activeType === 'short') && (
             <div className={styles.formGroup}>
-              <label className={styles.label}>選項設定 {activeType === 'multiple' && <span style={{fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'normal'}}>(可複選)</span>}</label>
+              <label className={styles.label}>
+                {(activeType === 'fill' || activeType === 'short') ? '文字答案設定' : '選項設定'} 
+                {activeType === 'multiple' && <span style={{fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'normal'}}>(可複選)</span>}
+              </label>
               <div className={styles.optionsList}>
                 {options.map((opt) => (
                   <div key={opt.id} className={styles.optionRow}>
-                    <div className={`${styles.optionLabel} ${opt.isCorrect ? styles.labelCorrect : ''}`}>{opt.id}</div>
-                    <input type="text" className={styles.optionInput} value={opt.text} onChange={(e) => handleOptionTextChange(opt.id, e.target.value)} placeholder={`輸入選項 ${opt.id} 內容...`} />
-                    <button className={`${styles.checkBtn} ${opt.isCorrect ? styles.checked : ''}`} onClick={() => handleToggleCorrect(opt.id)}><Check size={16} /></button>
+                    {activeType !== 'fill' && activeType !== 'short' && (
+                      <div className={`${styles.optionLabel} ${opt.isCorrect ? styles.labelCorrect : ''}`}>{opt.id}</div>
+                    )}
+                    <input type="text" className={styles.optionInput} value={opt.text} onChange={(e) => handleOptionTextChange(opt.id, e.target.value)} placeholder={(activeType === 'fill' || activeType === 'short') ? '請輸入標準答案/參考解答...' : `輸入選項 ${opt.id} 內容...`} />
+                    {activeType !== 'fill' && activeType !== 'short' && (
+                      <button className={`${styles.checkBtn} ${opt.isCorrect ? styles.checked : ''}`} onClick={() => handleToggleCorrect(opt.id)}><Check size={16} /></button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -466,11 +808,80 @@ const QuestionBank = () => {
               </div>
             </div>
           )}
+
+          {activeType !== 'group' && (
+            <div className={styles.formGroup} style={{ marginTop: '24px' }}>
+              <label className={styles.label}>標準答案補充 / 題目詳解 (選填)</label>
+              <textarea 
+                className={styles.optionInput} 
+                style={{ minHeight: '80px', padding: '12px', resize: 'vertical' }}
+                placeholder="可輸入此題的標準答案補充說明、計算過程或詳解..."
+                value={qExplanation}
+                onChange={(e) => setQExplanation(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* 題目進階設定 */}
+          <div className={styles.advancedSettingsSection}>
+            <div className={styles.sectionDivider}></div>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup} style={{ flex: 1 }}>
+                <label className={styles.label}>題目配分</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input 
+                    type="number" 
+                    className={styles.optionInput} 
+                    style={{ width: '100px' }}
+                    value={qScore} 
+                    onChange={(e) => setQScore(parseFloat(e.target.value) || 0)}
+                  />
+                  <span className={styles.muted}>分</span>
+                </div>
+              </div>
+              
+              <div className={styles.formGroup} style={{ flex: 1 }}>
+                <label className={styles.label}>難度等級</label>
+                <div className={styles.difficultyStars}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button 
+                      key={star} 
+                      className={`${styles.starBtn} ${qDifficulty >= star ? styles.starActive : ''}`}
+                      onClick={() => setQDifficulty(star)}
+                    >
+                      <Star size={18} fill={qDifficulty >= star ? "currentColor" : "none"} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.formGroup} style={{ flex: 1.5 }}>
+                <label className={styles.label}>分類標籤</label>
+                <input 
+                  type="text" 
+                  className={styles.optionInput} 
+                  placeholder="例如：第一章、基礎概念"
+                  value={qCategory} 
+                  onChange={(e) => setQCategory(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
           
           <div className={styles.editorFooter}>
-            <button className={styles.cancelBtn}>取消變更</button>
-            <button className={styles.saveBtn}>儲存題目</button>
+            <button className={styles.cancelBtn}>放棄變更</button>
+            <button className={styles.draftBtn} onClick={handleSaveQuestion}>💾 儲存為草稿</button>
           </div>
+        </div>
+
+        {/* Resizer Handle */}
+        <div 
+          className={`${styles.resizer} ${isDragging ? styles.active : ''}`}
+          onMouseDown={handleMouseDown}
+          onDoubleClick={handleDoubleClickResizer}
+          title="拖拉調整預覽寬度，雙擊重置"
+        >
+          <div className={styles.resizerLine} />
         </div>
 
         {/* Right Column: Preview */}
@@ -488,87 +899,69 @@ const QuestionBank = () => {
             {previewMode === 'mobile' ? (
               <div className={styles.phoneFrame}>
                 <div className={styles.phoneTopBar}><span className={styles.time}>9:41</span><div className={styles.cameraNotch}></div></div>
-                <div className={styles.phoneContent}>
-                  {activeType === 'group' ? (
-                    <>
-                      <button className={styles.drawerBtn} onClick={() => setShowArticleDrawer(!showArticleDrawer)}>
-                         {showArticleDrawer ? '收起閱讀本文' : '📖 點擊查看閱讀本文'}
-                      </button>
-                      {showArticleDrawer && (
-                         <div className={styles.articleDrawer}>
-                            <div className={styles.qTitlePreview} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(questionHTML) || '<span style="color:var(--color-text-muted)">請在左側輸入本文內容...</span>' }} />
-                         </div>
-                      )}
-                      {!showArticleDrawer && (
-                        <div className={styles.groupQuestionsContainer}>
-                          {subQuestions.map((sq, idx) => (
-                            <div key={sq.id} className={styles.subQuestionCard}>
-                              <div className={styles.sqHeader}>
-                                <span className={styles.sqBadge}>第 {idx + 1} 題 ({sq.type === 'single' ? '單選' : sq.type === 'multiple' ? '複選' : sq.type === 'tf' ? '是非' : '填空'})</span>
-                              </div>
-                              <div className={styles.qTitlePreview} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(sq.html) || '<span style="color:var(--color-text-muted)">此子題尚未填寫敘述...</span>' }} />
-                              {renderPreviewOptions(sq.type, sq.options, sq.wordLimit)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className={styles.qHeader}>
-                        <span className={styles.qBadge}>{activeType === 'single' ? '單選題' : activeType === 'multiple' ? '複選題' : activeType === 'tf' ? '是非題' : activeType === 'fill' ? '填空題' : '題型'}</span>
-                        <span className={styles.qProgress}>Q 1/15</span>
-                      </div>
-                      <div className={styles.qTitlePreview} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(questionHTML) || '<span style="color:var(--color-text-muted)">請在左側輸入題目內容...</span>' }} />
-                      
-                      {renderPreviewOptions(activeType, options, wordLimit)}
-                    </>
-                  )}
-                  <button className={styles.submitPreviewBtn}>確認送出 &rarr;</button>
+                <div className={styles.phoneContent} style={{ padding: 0 }}>
+                  <StudentExamPreview 
+                    previewMode="mobile"
+                    examConfig={examConfig}
+                    questions={examQuestions}
+                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
+                    questionHTML={questionHTML}
+                    activeType={activeType}
+                    options={options}
+                    subQuestions={subQuestions}
+                    wordLimit={wordLimit}
+                    renderLatexInHtml={renderLatexInHtml}
+                  />
                 </div>
               </div>
             ) : previewMode === 'tablet' ? (
-              <div className={styles.tabletFrame}>
-                 <div className={styles.qHeader}>
-                    <span className={styles.qBadge}>{activeType === 'single' ? '單選題' : activeType === 'multiple' ? '複選題' : activeType === 'tf' ? '是非題' : '題型'}</span>
-                  </div>
-                  <div className={styles.qTitlePreview} style={{ fontSize: '18px' }} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(questionHTML) || '<span style="color:var(--color-text-muted)">請在左側輸入題目內容...</span>' }} />
-                  {renderPreviewOptions(activeType, options, wordLimit)}
+              <div className={styles.tabletContainer}>
+                <div className={styles.tabletTopBar}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#1e293b' }}>9:41</span>
+                  <div className={styles.tabletCamera} />
+                  <span style={{ fontSize: 11, color: '#1e293b' }}>🔋 100%</span>
+                </div>
+                <div className={styles.tabletContent} style={{ padding: 0 }}>
+                  <StudentExamPreview 
+                    previewMode="tablet"
+                    examConfig={examConfig}
+                    questions={examQuestions}
+                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
+                    questionHTML={questionHTML}
+                    activeType={activeType}
+                    options={options}
+                    subQuestions={subQuestions}
+                    wordLimit={wordLimit}
+                    renderLatexInHtml={renderLatexInHtml}
+                  />
+                </div>
               </div>
             ) : (
               <div className={styles.monitorContainer}>
-                <div className={styles.desktopPreviewFrame}>
-                   {activeType === 'group' ? (
-                     <div className={styles.splitPane}>
-                       <div className={styles.splitLeft}>
-                         <div className={styles.qTitlePreview} style={{ fontSize: '18px' }} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(questionHTML) || '<span style="color:var(--color-text-muted)">請在左側輸入本文內容...</span>' }} />
-                       </div>
-                       <div className={styles.splitRight}>
-                         <div className={styles.groupQuestionsContainer}>
-                          {subQuestions.map((sq, idx) => (
-                            <div key={sq.id} className={styles.subQuestionCard}>
-                              <div className={styles.sqHeader}>
-                                <span className={styles.sqBadge}>第 {idx + 1} 題 ({sq.type === 'single' ? '單選' : sq.type === 'multiple' ? '複選' : sq.type === 'tf' ? '是非' : '填空'})</span>
-                              </div>
-                              <div className={styles.qTitlePreview} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(sq.html) || '<span style="color:var(--color-text-muted)">此子題尚未填寫敘述...</span>' }} />
-                              {renderPreviewOptions(sq.type, sq.options, sq.wordLimit)}
-                            </div>
-                          ))}
-                        </div>
-                       </div>
-                     </div>
-                   ) : (
-                     <>
-                       <div className={styles.qHeader}>
-                          <span className={styles.qBadge}>{activeType === 'single' ? '單選題' : activeType === 'multiple' ? '複選題' : activeType === 'tf' ? '是非題' : activeType === 'fill' ? '填空題' : '題型'}</span>
-                        </div>
-                        <div className={styles.qTitlePreview} style={{ fontSize: '18px' }} dangerouslySetInnerHTML={{ __html: renderLatexInHtml(questionHTML) || '<span style="color:var(--color-text-muted)">請在左側輸入題目內容...</span>' }} />
-                        {renderPreviewOptions(activeType, options, wordLimit)}
-                     </>
-                   )}
+                <div className={styles.monitorStand}>
+                  <div className={styles.monitorBase}>
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f87171' }} />
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fbbf24' }} />
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#34d399' }} />
+                  </div>
+                  <div className={styles.browserUrlBar}>
+                    🔒 exam.ailearn.edu.tw/test/questions/1
+                  </div>
                 </div>
-                <div className={styles.monitorStand}></div>
-                <div className={styles.monitorBase}></div>
+                <div className={styles.desktopPreviewFrame} style={{ padding: 0 }}>
+                  <StudentExamPreview 
+                    previewMode="desktop"
+                    examConfig={examConfig}
+                    questions={examQuestions}
+                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
+                    questionHTML={questionHTML}
+                    activeType={activeType}
+                    options={options}
+                    subQuestions={subQuestions}
+                    wordLimit={wordLimit}
+                    renderLatexInHtml={renderLatexInHtml}
+                  />
+                </div>
               </div>
             )}
           </div>

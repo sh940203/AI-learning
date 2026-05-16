@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search } from 'lucide-react';
+import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './AdminLayout.module.css';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -16,29 +17,34 @@ const AdminLayout = () => {
   return (
     <div className={styles.layout}>
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isSidebarCollapsed ? styles.collapsed : ''}`}>
         <div className={styles.logoContainer}>
-          <h2>管理後台</h2>
-          <span>Admin Dashboard</span>
+          <button className={styles.toggleBtn} onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+            <Menu size={24} />
+          </button>
+          <div className={styles.logoText}>
+            <h2>管理後台</h2>
+            <span>Admin Dashboard</span>
+          </div>
         </div>
 
         <nav className={styles.nav}>
-          <NavLink to="/admin/dashboard" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem}>
-            <LineChart size={20} /> 系統效能監控
+          <NavLink to="/admin/dashboard" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="系統效能監控">
+            <LineChart size={20} /> <span className={styles.navItemText}>系統效能監控</span>
           </NavLink>
-          <NavLink to="/admin/questions" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem}>
-            <Database size={20} /> 題庫管理
+          <NavLink to="/admin/questions" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫管理">
+            <Database size={20} /> <span className={styles.navItemText}>題庫管理</span>
           </NavLink>
-          <NavLink to="/admin/announcements" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem}>
-            <Megaphone size={20} /> 公告系統
+          <NavLink to="/admin/announcements" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="公告系統">
+            <Megaphone size={20} /> <span className={styles.navItemText}>公告系統</span>
           </NavLink>
-          <NavLink to="/admin/settings" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem}>
-            <Settings size={20} /> 設定
+          <NavLink to="/admin/settings" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="設定">
+            <Settings size={20} /> <span className={styles.navItemText}>設定</span>
           </NavLink>
         </nav>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.adminProfile}>
+          <div className={`${styles.adminProfile} ${isSidebarCollapsed ? styles.collapsedProfile : ''}`}>
             <div className={styles.avatar} style={{display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--color-primary)', fontWeight: 'bold'}}>
               {user ? user.name.charAt(0) : 'A'}
             </div>
@@ -47,11 +53,11 @@ const AdminLayout = () => {
               <span className={styles.email}>{user ? user.email : 'admin_center@gmail.com'}</span>
             </div>
           </div>
-          <button className={styles.ghostBtn}>
-            <HelpCircle size={18} /> 幫助中心
+          <button className={styles.ghostBtn} title="幫助中心">
+            <HelpCircle size={18} /> <span className={styles.navItemText}>幫助中心</span>
           </button>
-          <button className={styles.ghostBtn} onClick={handleLogout}>
-            <LogOut size={18} /> 登出
+          <button className={styles.ghostBtn} onClick={handleLogout} title="登出">
+            <LogOut size={18} /> <span className={styles.navItemText}>登出</span>
           </button>
         </div>
       </aside>

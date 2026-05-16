@@ -12,7 +12,9 @@ import AILearning from './pages/AILearning';
 import Tests from './pages/Tests';
 import ErrorAnalysis from './pages/ErrorAnalysis';
 import Performance from './pages/admin/Performance';
+import QuestionBankManager from './pages/admin/QuestionBankManager';
 import QuestionBank from './pages/admin/QuestionBank';
+import ExamSetup from './pages/admin/ExamSetup';
 import './index.css';
 
 // 測試用假頁面
@@ -50,7 +52,9 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<Performance />} />
-            <Route path="questions" element={<QuestionBank />} />
+            <Route path="questions" element={<QuestionBankManager />} />
+            <Route path="questions/edit" element={<QuestionBank />} />
+            <Route path="questions/exam/new" element={<ExamSetup />} />
             <Route path="announcements" element={<DummyPage title="公告系統" />} />
             <Route path="settings" element={<DummyPage title="系統設定" />} />
           </Route>
