@@ -242,6 +242,10 @@ const QuestionBank = () => {
   const [isMathModalOpen, setIsMathModalOpen] = useState(false);
   const [activeMathEditor, setActiveMathEditor] = useState(null);
 
+  // 新增全卷預覽 Modal 狀態
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false);
+
   // 考卷導覽列的狀態 (三欄式)
   const [examQuestions, setExamQuestions] = useState([]);
   const [activeQuestionId, setActiveQuestionId] = useState(null);
@@ -331,28 +335,7 @@ const QuestionBank = () => {
     setIsMathModalOpen(true);
   };
 
-  // 當切換題目時，重置編輯器內容與選項
-  useEffect(() => {
-    // 只有當切換 ID 時才執行
-    if (!activeQuestionId) return;
-    
-    // 重置基礎欄位
-    setQuestionHTML('');
-    if (editor) {
-      editor.commands.setContent('');
-    }
-    setQExplanation('');
-    setQCategory('');
-    setQScore(examConfig.defaultScore || 2);
-    setQDifficulty(3);
-    setWordLimit(0);
-    
-    // 根據當前題目類型重置選項
-    const activeQ = examQuestions.find(q => q.id === activeQuestionId);
-    if (activeQ) {
-      handleTypeChange(activeQ.type || 'single');
-    }
-  }, [activeQuestionId, editor]);
+  // (已移除第二個 useEffect：修復切換題目時，資料庫載入的內容瞬間被清空的 Bug)
 
   // 設定初始值給右側預覽
   useEffect(() => {
@@ -593,6 +576,34 @@ const QuestionBank = () => {
     }
   };
 
+  const handlePublishExam = () => {
+    if (!examConfig.examId) return;
+    setIsPublishConfirmOpen(true);
+  };
+
+  const confirmPublishExam = async () => {
+    try {
+      const res = await fetch(`/api/exams/${examConfig.examId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'published' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('🎉 考卷已成功發布！');
+        navigate('/admin/questions');
+      } else {
+        alert('發布失敗：' + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('發生網路錯誤，發布失敗。');
+    }
+    setIsPublishConfirmOpen(false);
+  };
+
+  const flattenedQuestions = examQuestions.map(q => ({ ...q, ...(q.data || {}) }));
+
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.breadcrumbRow}>
@@ -648,10 +659,10 @@ const QuestionBank = () => {
           </div>
           
           <div className={styles.navFooter}>
-            <button className={styles.previewAllBtn} title="預覽全卷">
+            <button className={styles.previewAllBtn} title="預覽全卷" onClick={() => setIsPreviewModalOpen(true)}>
               {isNavCollapsed ? <Eye size={18} /> : '預覽全卷'}
             </button>
-            <button className={styles.publishBtn} title="確認無誤，正式發布">
+            <button className={styles.publishBtn} title="確認無誤，正式發布" onClick={handlePublishExam}>
               {isNavCollapsed ? <Upload size={18} /> : '確認無誤，正式發布'}
             </button>
           </div>
@@ -903,7 +914,7 @@ const QuestionBank = () => {
                   <StudentExamPreview 
                     previewMode="mobile"
                     examConfig={examConfig}
-                    questions={examQuestions}
+                    questions={flattenedQuestions}
                     currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
                     questionHTML={questionHTML}
                     activeType={activeType}
@@ -925,7 +936,7 @@ const QuestionBank = () => {
                   <StudentExamPreview 
                     previewMode="tablet"
                     examConfig={examConfig}
-                    questions={examQuestions}
+                    questions={flattenedQuestions}
                     currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
                     questionHTML={questionHTML}
                     activeType={activeType}
@@ -952,7 +963,7 @@ const QuestionBank = () => {
                   <StudentExamPreview 
                     previewMode="desktop"
                     examConfig={examConfig}
-                    questions={examQuestions}
+                    questions={flattenedQuestions}
                     currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
                     questionHTML={questionHTML}
                     activeType={activeType}
@@ -1011,6 +1022,54 @@ const QuestionBank = () => {
           }
         }} 
       />
+
+      {/* 自訂發布確認 Modal */}
+      {isPublishConfirmOpen && (
+        <div className={styles.modalOverlay} style={{ zIndex: 9999 }}>
+          <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
+            <div className={styles.modalHeader}>
+              <h3>發布考卷確認</h3>
+              <button className={styles.closeBtn} onClick={() => setIsPublishConfirmOpen(false)}><X size={20} /></button>
+            </div>
+            <div className={styles.modalBody} style={{ padding: '24px 20px', fontSize: '16px', color: 'var(--color-on-surface)', lineHeight: '1.5' }}>
+              確定要正式發布此考卷嗎？<br /><br />
+              發布後學生即可開始進行測驗，請再次確認題目與答案內容是否皆已正確儲存。
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.outlineBtn} onClick={() => setIsPublishConfirmOpen(false)}>取消</button>
+              <button className={styles.saveBtn} onClick={confirmPublishExam}>確認發布</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 全卷預覽 Full Screen Modal */}
+      {isPreviewModalOpen && (
+        <div className={styles.modalOverlay} style={{ zIndex: 9999 }}>
+          <div className={styles.modalContent} style={{ width: '90vw', maxWidth: '1200px', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.modalHeader}>
+              <h3>全卷預覽 - {examConfig.title || '未命名考卷'}</h3>
+              <button className={styles.closeBtn} onClick={() => setIsPreviewModalOpen(false)}><X size={20} /></button>
+            </div>
+            <div className={styles.modalBody} style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
+                <StudentExamPreview 
+                  previewMode="desktop"
+                  examConfig={examConfig}
+                  questions={flattenedQuestions}
+                  currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
+                  questionHTML={questionHTML}
+                  activeType={activeType}
+                  options={options}
+                  subQuestions={subQuestions}
+                  wordLimit={wordLimit}
+                  renderLatexInHtml={renderLatexInHtml}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

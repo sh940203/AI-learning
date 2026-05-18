@@ -21,12 +21,11 @@ router.post('/', async (req, res) => {
 });
 
 // @route   PUT /api/exams/:id
-// @desc    更新測驗題庫設定 (ExamSetup / 重新命名)
+// @desc    更新測驗題庫設定 (ExamSetup / 重新命名 / 題目重新排序)
 router.put('/:id', async (req, res) => {
   try {
-    // 過濾掉不可透過此路徑更新的欄位 (如 questions)
     const updateData = { ...req.body };
-    delete updateData.questions;
+    // 移除 `delete updateData.questions;` 讓前端可以傳送重排後的 questions 陣列來更新順序
     
     const exam = await Exam.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!exam) return res.status(404).json({ success: false, message: '找不到考卷' });
@@ -50,10 +49,11 @@ router.delete('/:id', async (req, res) => {
 });
 
 // @route   GET /api/exams/:id
-// @desc    取得單一考卷設定 (進入 Setup 編輯用)
+// @desc    取得單一考卷設定與所有題目 (進入 Setup 編輯用)
 router.get('/:id', async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    // 自動展開題目資料，方便前端一次性獲取完整資訊
+    const exam = await Exam.findById(req.params.id).populate('questions');
     if (!exam || !exam.isActive) return res.status(404).json({ success: false, message: '找不到考卷' });
     res.status(200).json({ success: true, data: exam });
   } catch (error) {
