@@ -1,0 +1,182 @@
+.container {
+  padding: 24px;
+  background-color: var(--color-bg-main);
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-text-main);
+}
+
+.addBtn {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.addBtn:hover {
+  opacity: 0.9;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  background-color: var(--color-bg-sub);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.tag.重要 { background-color: #fee2e2; color: #dc2626; }
+.tag.系統 { background-color: #e0e7ff; color: #4f46e5; }
+.tag.更新 { background-color: #dcfce7; color: #16a34a; }
+.tag.一般 { background-color: #f3f4f6; color: #4b5563; }
+
+.statusBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+.statusVisible { background-color: #dcfce7; color: #16a34a; }
+.statusHidden { background-color: #fee2e2; color: #dc2626; }
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+}
+.actionBtn:hover { background-color: var(--color-bg-sub); color: var(--color-text-main); }
+.deleteBtn:hover { color: #dc2626; }
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: var(--color-bg-main);
+  padding: 24px;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90vw;
+}
+
+.modalContent h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.modalInput, .modalSelect, .modalTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-bg-sub);
+  color: var(--color-text-main);
+}
+
+.modalTextarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text-main);
+}
+
+.confirmBtn {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dangerBtn {
+  background-color: #dc2626;
+}

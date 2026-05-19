@@ -1,41 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Megaphone, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
-const announcements = [
-  { id: 1, date: '2024.05.20', tag: '重要', title: 'AI 論文摘要生成功能優化更新', content: '系統已更新 LLM 模型，提供更精準的長文本摘要能力，提升學習效率...' },
-  { id: 2, date: '2024.05.18', tag: null, title: '系統維護通知：本週六凌晨 02:00', content: '為進行核心數據庫升級，預計影響服務 2 小時，請提早存檔。' },
-  { id: 3, date: '2024.05.15', tag: null, title: '新功能上線：智慧化學習路徑規劃', content: '透過 AI 分析個人學習弱點，自動生成專屬的學習藍圖與資源推薦。' },
-  { id: 4, date: '2024.05.10', tag: null, title: '伺服器擴展完成，連線速度提升 40%', content: '' },
-];
-
 const Login = () => {
   const [activeTab, setActiveTab] = useState('register'); // 'login' or 'register'
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  
+  const [announcementsData, setAnnouncementsData] = useState([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await fetch('/api/announcements?public=true');
+        if (res.ok) {
+          const data = await res.json();
+          setAnnouncementsData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch announcements', err);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors = {};
     if (activeTab === 'register' && !name.trim()) newErrors.name = '請填寫真實姓名';
-    
+
     if (!email) {
       newErrors.email = '請填寫電子郵件';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = '電子郵件格式不正確';
     }
-    
+
     if (!password) {
       newErrors.password = '請填寫密碼';
     } else if (password.length < 8) {
@@ -55,13 +65,35 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // 模擬驗證成功並登入
-    login({ name: activeTab === 'register' ? name : '使用者', email });
-    navigate('/disclaimer');
+    try {
+      const endpoint = activeTab === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const payload = activeTab === 'register' ? { name, email, password } : { email, password };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrors({ ...errors, submit: data.message || '發生錯誤，請稍後再試' });
+        return;
+      }
+
+      // 登入成功
+      login(data.user, data.token);
+      navigate('/disclaimer');
+    } catch (error) {
+      setErrors({ ...errors, submit: '網路連線錯誤，請確認伺服器是否運行中' });
+    }
   };
 
   return (
@@ -84,24 +116,65 @@ const Login = () => {
           <h2 className={styles.panelTitle}>
             <Megaphone size={24} /> 系統公告
           </h2>
-          
+
           <div className={styles.announcementList}>
-            {announcements.map((item) => (
-              <div key={item.id} className={styles.announcementCard}>
-                <div className={styles.cardHeader}>
-                  <span className={styles.date}>{item.date}</span>
-                  {item.tag && <span className={styles.tag}>{item.tag}</span>}
+            {announcementsData.length === 0 ? (
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>目前沒有公告</p>
+            ) : (
+              announcementsData.slice(0, 4).map((item) => (
+                <div 
+                  key={item._id} 
+                  className={styles.announcementCard} 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedAnnouncement(item)}
+                >
+                  <div className={styles.cardHeader}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.isPinned && <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 'bold' }}>📌</span>}
+                      <span className={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {item.tag && <span className={`${styles.tag} ${styles['tag' + item.tag] || styles.tag一般}`}>{item.tag}</span>}
+                  </div>
+                  <h3 className={styles.cardTitle}>{item.title}</h3>
+                  {item.content && (
+                    <p className={styles.cardContent}>
+                      {item.content.length > 50 ? (
+                        <>
+                          {item.content.substring(0, 50)}...
+                          <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>更多內容</span>
+                        </>
+                      ) : (
+                        item.content
+                      )}
+                    </p>
+                  )}
                 </div>
-                <h3 className={styles.cardTitle}>{item.title}</h3>
-                {item.content && <p className={styles.cardContent}>{item.content}</p>}
-              </div>
-            ))}
+              ))
+            )}
           </div>
-          
-          <button className={styles.moreBtn}>
-            查看更多公告 <ChevronRight size={16} />
-          </button>
+
+          {announcementsData.length > 4 && (
+            <button className={styles.moreBtn}>
+              查看更多公告 <ChevronRight size={16} />
+            </button>
+          )}
         </div>
+
+        {selectedAnnouncement && (
+          <div className={styles.modalOverlay} onClick={() => setSelectedAnnouncement(null)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <h3 className={styles.modalTitle}>{selectedAnnouncement.title}</h3>
+              <div className={styles.modalMeta}>
+                <span className={styles.date}>{new Date(selectedAnnouncement.createdAt).toLocaleDateString()}</span>
+                {selectedAnnouncement.tag && <span className={`${styles.tag} ${styles['tag' + selectedAnnouncement.tag] || styles.tag一般}`}>{selectedAnnouncement.tag}</span>}
+              </div>
+              <div className={styles.modalBody}>
+                {selectedAnnouncement.content}
+              </div>
+              <button className={styles.modalCloseBtn} onClick={() => setSelectedAnnouncement(null)}>關閉</button>
+            </div>
+          </div>
+        )}
 
         {/* Right: Auth Form */}
         <div className={styles.formPanel}>
@@ -112,13 +185,13 @@ const Login = () => {
             </div>
 
             <div className={styles.tabs}>
-              <button 
+              <button
                 className={`${styles.tab} ${activeTab === 'register' ? styles.activeTab : ''}`}
                 onClick={() => { setActiveTab('register'); setErrors({}); }}
               >
                 建立帳號
               </button>
-              <button 
+              <button
                 className={`${styles.tab} ${activeTab === 'login' ? styles.activeTab : ''}`}
                 onClick={() => { setActiveTab('login'); setErrors({}); }}
               >
@@ -130,9 +203,9 @@ const Login = () => {
               {activeTab === 'register' && (
                 <div className={styles.formGroup}>
                   <label>姓名</label>
-                  <input 
-                    type="text" 
-                    placeholder="輸入您的真實姓名" 
+                  <input
+                    type="text"
+                    placeholder="輸入您的真實姓名"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className={errors.name ? styles.inputError : ''}
@@ -143,9 +216,9 @@ const Login = () => {
 
               <div className={styles.formGroup}>
                 <label>電子郵件</label>
-                <input 
-                  type="email" 
-                  placeholder="example@scholar.edu" 
+                <input
+                  type="email"
+                  placeholder="example@scholar.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={errors.email ? styles.inputError : ''}
@@ -156,15 +229,15 @@ const Login = () => {
               <div className={styles.formGroup}>
                 <label>密碼</label>
                 <div className={styles.passwordInputWrapper}>
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder={activeTab === 'register' ? "至少 8 個字元" : "輸入密碼"} 
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={activeTab === 'register' ? "至少 8 個字元" : "輸入密碼"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={errors.password ? styles.inputError : ''}
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={styles.eyeBtn}
                     onClick={() => setShowPassword(!showPassword)}
                   >
@@ -178,9 +251,9 @@ const Login = () => {
                 <div className={styles.formGroup}>
                   <label>確認密碼</label>
                   <div className={styles.passwordInputWrapper}>
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="再次輸入密碼" 
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="再次輸入密碼"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className={errors.confirmPassword ? styles.inputError : ''}
@@ -193,9 +266,9 @@ const Login = () => {
               {activeTab === 'register' && (
                 <div className={styles.checkboxGroup}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input 
-                      type="checkbox" 
-                      id="terms" 
+                    <input
+                      type="checkbox"
+                      id="terms"
                       checked={termsAccepted}
                       onChange={(e) => setTermsAccepted(e.target.checked)}
                     />
@@ -203,7 +276,7 @@ const Login = () => {
                       我已閱讀並同意 <a href="#">服務條款</a> 與 <a href="#">隱私權政策</a>
                     </label>
                   </div>
-                  {errors.terms && <span className={styles.errorText} style={{marginLeft: '24px'}}>{errors.terms}</span>}
+                  {errors.terms && <span className={styles.errorText} style={{ marginLeft: '24px' }}>{errors.terms}</span>}
                 </div>
               )}
 
@@ -227,7 +300,7 @@ const Login = () => {
           </div>
         </div>
       </main>
-      
+
       <footer className={styles.footer}>
         <p className={styles.footerCopy}>© 2024 AI智能輔助自主學習系統</p>
         <div className={styles.footerLinks}>

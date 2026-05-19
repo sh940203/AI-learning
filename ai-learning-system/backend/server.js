@@ -19,6 +19,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // 路由設定
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/questions', require('./routes/questions'));
 app.use('/api/folders', require('./routes/folders'));
 app.use('/api/exams', require('./routes/exams'));

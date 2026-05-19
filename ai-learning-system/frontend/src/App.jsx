@@ -15,6 +15,7 @@ import Performance from './pages/admin/Performance';
 import QuestionBankManager from './pages/admin/QuestionBankManager';
 import QuestionBank from './pages/admin/QuestionBank';
 import ExamSetup from './pages/admin/ExamSetup';
+import Announcements from './pages/admin/Announcements';
 import './index.css';
 
 
@@ -55,7 +56,7 @@ function App() {
             <Route path="questions" element={<QuestionBankManager />} />
             <Route path="questions/edit" element={<QuestionBank />} />
             <Route path="questions/exam/new" element={<ExamSetup />} />
-            <Route path="announcements" element={<DummyPage title="公告系統" />} />
+            <Route path="announcements" element={<Announcements />} />
             <Route path="settings" element={<DummyPage title="系統設定" />} />
           </Route>
         </Routes>
