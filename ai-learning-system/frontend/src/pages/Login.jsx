@@ -279,6 +279,12 @@ const Login = () => {
                   {errors.terms && <span className={styles.errorText} style={{ marginLeft: '24px' }}>{errors.terms}</span>}
                 </div>
               )}
+              
+              {errors.submit && (
+                <div className={styles.errorText} style={{ textAlign: 'center', marginBottom: '16px', fontWeight: 'bold' }}>
+                  {errors.submit}
+                </div>
+              )}
 
               <button type="submit" className={styles.submitBtn}>
                 {activeTab === 'register' ? '立即註冊' : '登入系統'}
