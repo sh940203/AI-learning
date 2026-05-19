@@ -17,7 +17,7 @@ import QuestionBank from './pages/admin/QuestionBank';
 import ExamSetup from './pages/admin/ExamSetup';
 import './index.css';
 
-// 測試用假頁面
+
 const DummyPage = ({ title }) => (
   <div style={{ padding: '24px', backgroundColor: 'var(--color-bg-main)', height: '100%', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
     <h2>{title}</h2>
