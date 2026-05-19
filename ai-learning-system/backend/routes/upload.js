@@ -10,7 +10,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 設定 Multer 儲存機制
+// 設定 Multer 儲存機制 ...
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
   fileFilter: (req, file, cb) => {
@@ -41,11 +41,11 @@ router.post('/image', upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: '請提供圖片檔案' });
     }
-    
+
     // 未來如果部署到正式環境，這裡可以改為雲端存儲 (S3) 的 URL
     // 目前開發環境先回傳本地路徑
     const fileUrl = `/uploads/${req.file.filename}`;
-    
+
     res.status(200).json({
       success: true,
       url: fileUrl,
