@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import AILearning from './pages/AILearning';
 import Tests from './pages/Tests';
 import ErrorAnalysis from './pages/ErrorAnalysis';
+import TakeExam from './pages/TakeExam';
 import Performance from './pages/admin/Performance';
 import QuestionBankManager from './pages/admin/QuestionBankManager';
 import QuestionBank from './pages/admin/QuestionBank';
@@ -39,6 +40,7 @@ function App() {
           {/* 獨立全螢幕路由 (Login, Disclaimer 等) */}
           <Route path="/login" element={<Login />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/tests/take/:examId" element={<TakeExam />} />
 
           {/* 學生端路由 */}
           <Route path="/" element={<MainLayout />}>

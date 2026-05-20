@@ -48,6 +48,34 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// @route   GET /api/exams/published
+// @desc    取得所有已發布的試卷 (供學生端列表使用，支援搜尋與分類過濾)
+router.get('/published', async (req, res) => {
+  try {
+    const { examCategory, search } = req.query;
+    
+    // 預設篩選已發布且啟用的考卷
+    const query = { status: 'published', isActive: true };
+    
+    if (examCategory && examCategory !== '全部') {
+      query.examCategory = examCategory;
+    }
+    
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { subject: { $regex: search, $options: 'i' } },
+        { examYear: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const exams = await Exam.find(query).sort({ examYear: -1, createdAt: -1 });
+    res.status(200).json({ success: true, data: exams });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '讀取發布試卷失敗', error: error.message });
+  }
+});
+
 // @route   GET /api/exams/:id
 // @desc    取得單一考卷設定與所有題目 (進入 Setup 編輯用)
 router.get('/:id', async (req, res) => {

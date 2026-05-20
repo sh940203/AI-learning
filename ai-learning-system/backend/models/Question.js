@@ -41,6 +41,8 @@ const questionSchema = new mongoose.Schema({
   examId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam' }, // 綁定到哪張考卷
   score: { type: Number, default: 2 }, // 單題配分
   category: { type: String }, // 題目單元 (例如："第一章")
+  tags: [{ type: String }], // 知識點標籤陣列 (例如：['CAP定理', '分散式系統'])
+  subject: { type: String }, // 科目名稱 (例如：'數學甲', '英文', '國文')
   difficulty: { type: Number, min: 1, max: 5, default: 3 },
   status: { type: String, enum: ['draft', 'saved'], default: 'draft' }, // 草稿或已儲存
   isActive: { type: Boolean, default: true }

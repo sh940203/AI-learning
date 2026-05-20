@@ -15,7 +15,7 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import styles from './QuestionBank.module.css';
 import MathEditorModal from '../../components/MathEditorModal';
-import StudentExamPreview from '../../components/exam/StudentExamPreview';
+import ExamRenderCore from '../../components/ExamRenderCore';
 
 const renderLatexInHtml = (html) => {
   if (!html) return '';
@@ -604,6 +604,32 @@ const QuestionBank = () => {
 
   const flattenedQuestions = examQuestions.map(q => ({ ...q, ...(q.data || {}) }));
 
+  const realtimeQuestions = examQuestions.map(q => {
+    if (q.id === activeQuestionId) {
+      return {
+        ...q,
+        _id: q.data?._id || q.id,
+        type: activeType,
+        html: questionHTML,
+        options: activeType !== 'group' ? options : [],
+        subQuestions: activeType === 'group' ? subQuestions : [],
+        score: qScore || examConfig.defaultScore || 2,
+        explanation: qExplanation,
+        wordLimit: (activeType === 'fill' || activeType === 'short') ? wordLimit : 0,
+      };
+    }
+    const base = { ...q, ...(q.data || {}) };
+    return {
+      ...base,
+      _id: base._id || base.id,
+      options: base.options || [],
+      subQuestions: base.subQuestions || [],
+      html: base.html || '',
+      type: base.type || 'single',
+      score: base.score || examConfig.defaultScore || 2
+    };
+  });
+
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.breadcrumbRow}>
@@ -910,18 +936,16 @@ const QuestionBank = () => {
             {previewMode === 'mobile' ? (
               <div className={styles.phoneFrame}>
                 <div className={styles.phoneTopBar}><span className={styles.time}>9:41</span><div className={styles.cameraNotch}></div></div>
-                <div className={styles.phoneContent} style={{ padding: 0 }}>
-                  <StudentExamPreview 
-                    previewMode="mobile"
-                    examConfig={examConfig}
-                    questions={flattenedQuestions}
-                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
-                    questionHTML={questionHTML}
-                    activeType={activeType}
-                    options={options}
-                    subQuestions={subQuestions}
-                    wordLimit={wordLimit}
-                    renderLatexInHtml={renderLatexInHtml}
+                <div className={styles.phoneContent} style={{ padding: 0, overflow: 'hidden' }}>
+                  <ExamRenderCore
+                    isPreview={true}
+                    questions={realtimeQuestions}
+                    currentIndex={Math.max(0, examQuestions.findIndex(q => q.id === activeQuestionId))}
+                    setCurrentIndex={(idx) => {
+                      const targetQ = examQuestions[idx];
+                      if (targetQ) setActiveQuestionId(targetQ.id);
+                    }}
+                    deviceType="phone"
                   />
                 </div>
               </div>
@@ -932,18 +956,16 @@ const QuestionBank = () => {
                   <div className={styles.tabletCamera} />
                   <span style={{ fontSize: 11, color: '#1e293b' }}>🔋 100%</span>
                 </div>
-                <div className={styles.tabletContent} style={{ padding: 0 }}>
-                  <StudentExamPreview 
-                    previewMode="tablet"
-                    examConfig={examConfig}
-                    questions={flattenedQuestions}
-                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
-                    questionHTML={questionHTML}
-                    activeType={activeType}
-                    options={options}
-                    subQuestions={subQuestions}
-                    wordLimit={wordLimit}
-                    renderLatexInHtml={renderLatexInHtml}
+                <div className={styles.tabletContent} style={{ padding: 0, overflow: 'hidden' }}>
+                  <ExamRenderCore
+                    isPreview={true}
+                    questions={realtimeQuestions}
+                    currentIndex={Math.max(0, examQuestions.findIndex(q => q.id === activeQuestionId))}
+                    setCurrentIndex={(idx) => {
+                      const targetQ = examQuestions[idx];
+                      if (targetQ) setActiveQuestionId(targetQ.id);
+                    }}
+                    deviceType="tablet"
                   />
                 </div>
               </div>
@@ -959,18 +981,16 @@ const QuestionBank = () => {
                     🔒 exam.ailearn.edu.tw/test/questions/1
                   </div>
                 </div>
-                <div className={styles.desktopPreviewFrame} style={{ padding: 0 }}>
-                  <StudentExamPreview 
-                    previewMode="desktop"
-                    examConfig={examConfig}
-                    questions={flattenedQuestions}
-                    currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
-                    questionHTML={questionHTML}
-                    activeType={activeType}
-                    options={options}
-                    subQuestions={subQuestions}
-                    wordLimit={wordLimit}
-                    renderLatexInHtml={renderLatexInHtml}
+                <div className={styles.desktopPreviewFrame} style={{ padding: 0, overflow: 'hidden' }}>
+                  <ExamRenderCore
+                    isPreview={true}
+                    questions={realtimeQuestions}
+                    currentIndex={Math.max(0, examQuestions.findIndex(q => q.id === activeQuestionId))}
+                    setCurrentIndex={(idx) => {
+                      const targetQ = examQuestions[idx];
+                      if (targetQ) setActiveQuestionId(targetQ.id);
+                    }}
+                    deviceType="desktop"
                   />
                 </div>
               </div>
@@ -1052,18 +1072,16 @@ const QuestionBank = () => {
               <button className={styles.closeBtn} onClick={() => setIsPreviewModalOpen(false)}><X size={20} /></button>
             </div>
             <div className={styles.modalBody} style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-              <div style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
-                <StudentExamPreview 
-                  previewMode="desktop"
-                  examConfig={examConfig}
-                  questions={flattenedQuestions}
-                  currentQuestionIndex={examQuestions.findIndex(q => q.id === activeQuestionId)}
-                  questionHTML={questionHTML}
-                  activeType={activeType}
-                  options={options}
-                  subQuestions={subQuestions}
-                  wordLimit={wordLimit}
-                  renderLatexInHtml={renderLatexInHtml}
+              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                <ExamRenderCore
+                  isPreview={true}
+                  questions={realtimeQuestions}
+                  currentIndex={Math.max(0, examQuestions.findIndex(q => q.id === activeQuestionId))}
+                  setCurrentIndex={(idx) => {
+                    const targetQ = examQuestions[idx];
+                    if (targetQ) setActiveQuestionId(targetQ.id);
+                  }}
+                  deviceType="desktop"
                 />
               </div>
             </div>

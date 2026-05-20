@@ -1,0 +1,386 @@
+.takeExamWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Occupy full window viewport */
+  width: 100vw;
+  background-color: var(--color-bg-main);
+  overflow: hidden;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999; /* Float above the main sidebar layout */
+}
+
+/* Immersive header bar */
+.examHeader {
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-main);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  min-width: 0; /* Enable text clipping */
+}
+
+.exitBtn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.exitBtn:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-text-muted);
+}
+
+.divider {
+  color: var(--color-border);
+}
+
+.examTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.saveIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  color: var(--color-text-muted);
+}
+
+.saveIndicatorSaving {
+  color: #3b82f6;
+  border-color: #bfdbfe;
+  background-color: #eff6ff;
+}
+
+.saveIndicatorUnsaved {
+  color: #d97706;
+  border-color: #fde68a;
+  background-color: #fffbeb;
+}
+
+.saveIndicatorError {
+  color: #ef4444;
+  border-color: #fecaca;
+  background-color: #fef2f2;
+}
+
+.saveIconSaved {
+  color: #22c55e;
+}
+
+.saveIconSyncing {
+  animation: cloudPulse 1.2s ease-in-out infinite;
+}
+
+.saveIconUnsaved {
+  animation: cloudBreathe 2s ease-in-out infinite;
+}
+
+@keyframes cloudPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes cloudBreathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.saveText {
+  font-weight: 500;
+}
+
+.timerBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-main);
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.timerAlert {
+  background-color: #fef2f2 !important;
+  border-color: #fee2e2 !important;
+  color: #ef4444 !important;
+  animation: pulseAlert 1s infinite alternate;
+}
+
+@keyframes pulseAlert {
+  0% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+.timerText {
+  font-size: 14px;
+}
+
+.submitBtnHeader {
+  background-color: var(--color-primary, #3b82f6);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitBtnHeader:hover {
+  background-color: #2563eb;
+}
+
+/* Scroll Progress HUD Bar */
+.scrollProgressBar {
+  height: 3px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.scrollProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.15s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Main testing panel */
+.examMain {
+  flex-grow: 1;
+  overflow: hidden;
+  padding: var(--spacing-xl);
+  box-sizing: border-box;
+}
+
+/* Loading and spinner styles */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+}
+
+.spinner {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary, #3b82f6);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dialog confirm overlay styling */
+.dialogOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10100;
+}
+
+.dialogCard {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--spacing-xl);
+  box-sizing: border-box;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.dialogIconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #fef9c3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-lg);
+}
+
+.dialogTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 var(--spacing-md);
+}
+
+.unansweredNotice {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  text-align: left;
+}
+
+.unansweredNotice p {
+  margin: 0 0 var(--spacing-md);
+  font-size: 13px;
+  color: #92400e;
+}
+
+.unansweredGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.unansweredNumBtn {
+  height: 32px;
+  background-color: #fff;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unansweredNumBtn:hover {
+  background-color: #fef3c7;
+  transform: scale(1.05);
+}
+
+.clickNotice {
+  font-size: 11px !important;
+  color: var(--color-text-muted) !important;
+  margin: 0 !important;
+}
+
+.successNotice {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+}
+
+.dialogSubText {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-xl);
+}
+
+.dialogActions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.dialogCancelBtn {
+  flex: 1;
+  padding: 10px;
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-main);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dialogCancelBtn:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.dialogConfirmBtn {
+  flex: 1;
+  padding: 10px;
+  background-color: var(--color-primary, #3b82f6);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dialogConfirmBtn:hover {
+  background-color: #2563eb;
+}
