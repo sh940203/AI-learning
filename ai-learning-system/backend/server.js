@@ -28,6 +28,7 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/quiz', require('./routes/quiz'));
+app.use('/api/ai', require('./routes/ai'));
 
 // 提供靜態檔案存取 (圖片等)
 const path = require('path');

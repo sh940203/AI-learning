@@ -5,15 +5,78 @@ import CalendarWidget from '../components/CalendarWidget';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
+const defaultEvents = [
+  { 
+    id: 1, 
+    date: '2026-05-20', 
+    time: '21:00',
+    title: '計算機概論：期中專案繳交', 
+    type: 'red',
+    isAllDay: false,
+    notes: '請確保所有的程式碼註釋完整並符合格式規範。包含專案雲端連結。',
+    location: '線上繳交系統',
+    completed: false
+  },
+  { 
+    id: 2, 
+    date: '2026-05-21', 
+    time: '18:00',
+    title: 'AI自主學習：深度學習模組', 
+    type: 'blue', // Changed from purple to blue
+    isAllDay: false,
+    notes: '完成第三單元的自我評測練習題。包含卷積神經網路概念。',
+    completed: false
+  },
+  { 
+    id: 3, 
+    date: '2026-05-28', 
+    time: '12:00',
+    title: '通識英語：單字複習', 
+    type: 'orange',
+    isAllDay: false,
+    notes: '利用系統生成的單字卡進行 15 分鐘複習。目標 50 個新單字。',
+    completed: false
+  },
+  { 
+    id: 4, 
+    date: '2026-05-22', 
+    time: '14:00',
+    title: '資料結構：紅黑樹討論', 
+    type: 'blue',
+    isAllDay: false,
+    notes: '小組線上會議討論紅黑樹的實作細節。',
+    completed: false
+  },
+  { 
+    id: 5, 
+    date: '2026-05-25', 
+    time: '19:00',
+    title: '課外活動：系學會大會', 
+    type: 'green',
+    isAllDay: false,
+    notes: '討論下學期迎新活動企劃。',
+    location: '第一會議室',
+    completed: false
+  }
+];
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [greeting, setGreeting] = useState('');
   const [dateStr, setDateStr] = useState('');
+  const [events, setEvents] = useState(() => {
+    // Bust cache to v3 to clear out purple categories and load clean default events
+    const saved = localStorage.getItem('ai_learning_events_v3');
+    return saved ? JSON.parse(saved) : defaultEvents;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ai_learning_events_v3', JSON.stringify(events));
+  }, [events]);
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      // Use Asia/Taipei timezone
       const formatter = new Intl.DateTimeFormat('zh-TW', {
         timeZone: 'Asia/Taipei',
         hour: 'numeric',
@@ -29,7 +92,6 @@ const Dashboard = () => {
       }
       setGreeting(timeGreeting);
 
-      // Date string format: YYYY 年 MM 月 DD 日 AM/PM HH:MM
       const dateFormatter = new Intl.DateTimeFormat('zh-TW', {
         timeZone: 'Asia/Taipei',
         year: 'numeric',
@@ -43,16 +105,17 @@ const Dashboard = () => {
     };
 
     updateTime();
-    // Update every minute to keep time fresh
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  const pendingCount = events.filter(e => !e.completed).length;
+
   return (
     <div className={styles.container}>
       <div className={styles.welcomeHeader}>
-        <h1>{greeting}，{user?.name || '使用者'}</h1>
-        <p>今天是 {dateStr}。你有 3 個即將到期的任務。</p>
+        <h1>{greeting}，{user?.name || '陳嘉恩'}</h1>
+        <p>今天是 {dateStr}。你有 {pendingCount} 個即將到期的任務。</p>
       </div>
 
       <div className={styles.mainGrid}>
@@ -61,9 +124,9 @@ const Dashboard = () => {
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>任務時間軸</h2>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>本週</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>待辦任務</span>
             </div>
-            <TaskTimeline />
+            <TaskTimeline events={events} setEvents={setEvents} />
           </div>
 
           <div className={styles.efficiencyCard}>
@@ -79,7 +142,7 @@ const Dashboard = () => {
         {/* Right Column */}
         <div className={styles.rightCol}>
           <div className={`${styles.card} ${styles.fullHeight}`}>
-            <CalendarWidget />
+            <CalendarWidget events={events} setEvents={setEvents} />
           </div>
         </div>
       </div>
