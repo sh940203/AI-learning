@@ -42,7 +42,6 @@ const Tests = () => {
   const [activeFilter, setActiveFilter] = useState('全部');
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [onlyWrongAnswers, setOnlyWrongAnswers] = useState(false);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState(null);
 
   // 後端資料庫連線狀態
@@ -130,10 +129,7 @@ const Tests = () => {
         };
       });
 
-      // 只顯示錯題過濾 (在此示範為已完成項目，配合後續錯題分析開發)
-      const finalExams = onlyWrongAnswers 
-        ? mergedExams.filter(e => e.status === '已完成') 
-        : mergedExams;
+      const finalExams = mergedExams;
 
       setExams(finalExams);
       setProgressStats(stats);
@@ -153,7 +149,7 @@ const Tests = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeFilter, debouncedSearch, onlyWrongAnswers]);
+  }, [activeFilter, debouncedSearch]);
 
   // 監聽依賴變更，自動重新獲取資料
   useEffect(() => {
@@ -298,17 +294,6 @@ const Tests = () => {
           <div className={styles.headerRow}>
             <h2>{activeCategory ? `${activeCategory.year} 年 ${activeCategory.type} 歷屆試卷` : '歷屆考古題庫'}</h2>
             <div className={styles.filters}>
-              <div className={styles.toggleGroup}>
-                <span>只顯示錯題</span>
-                <label className={styles.switch}>
-                  <input 
-                    type="checkbox" 
-                    checked={onlyWrongAnswers}
-                    onChange={(e) => setOnlyWrongAnswers(e.target.checked)}
-                  />
-                  <span className={styles.slider}></span>
-                </label>
-              </div>
               <div className={styles.segmentedControl}>
                 <button 
                   className={`${styles.segBtn} ${activeFilter === '全部' ? styles.active : ''}`} 
