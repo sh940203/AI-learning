@@ -50,9 +50,28 @@ const TakeExam = () => {
           setSelectedAnswers(answersMap);
           
           if (progress.status === 'completed') {
-            alert('這份考卷已經完成，即將跳轉至分析報告！');
-            navigate('/error-analysis');
-            return;
+            if (data.allowRetake) {
+              const confirmRetake = window.confirm(
+                '您已經完成過此試卷。管理員已開啟「允許重考」功能，是否要重新開始挑戰一次？\n（注意：這將會清除您先前的所有作答與分數紀錄）'
+              );
+              if (confirmRetake) {
+                // 重設後端進度
+                await updateExamProgress(examId, {
+                  status: 'in_progress',
+                  progressRate: 0,
+                  score: 0,
+                  answers: []
+                });
+                setSelectedAnswers({}); // 清除前端選項快取
+              } else {
+                navigate('/error-analysis');
+                return;
+              }
+            } else {
+              alert('這份考卷已經完成，即將跳轉至分析報告！');
+              navigate('/error-analysis');
+              return;
+            }
           }
         }
 
