@@ -215,6 +215,9 @@ const Tests = () => {
     return b.type.localeCompare(a.type);
   });
 
+  const gsatCategories = categories.filter(cat => cat.type === '學測');
+  const tvejeCategories = categories.filter(cat => cat.type === '統測');
+
   // 取得目前選取的分類詳情
   const activeCategory = selectedCategoryKey ? categoriesMap[selectedCategoryKey] : null;
 
@@ -344,10 +347,10 @@ const Tests = () => {
           {/* 第一層分類 vs 第二層試卷列表切換 */}
           {!selectedCategoryKey ? (
             /* 第一層：年份與考試類型卡片清單 */
-            <div className={styles.categoriesGrid}>
-              {loading ? (
-                /* 載入中骨架卡片 */
-                [1, 2, 3].map(i => (
+            loading ? (
+              <div className={styles.categoriesGrid}>
+                {/* 載入中骨架卡片 */}
+                {[1, 2, 3].map(i => (
                   <div key={i} className={styles.categoryCard} style={{ opacity: 0.6 }}>
                     <div className={styles.categoryCardHeader}>
                       <div className={styles.skeletonBadge} style={{ width: '60px' }} />
@@ -358,36 +361,89 @@ const Tests = () => {
                       <div className={styles.skeletonText} style={{ width: '120px', height: '12px' }} />
                     </div>
                   </div>
-                ))
-              ) : categories.length === 0 ? (
-                <div className={styles.emptyStateContainer}>
-                  <div className={styles.emptyStateTitle}>尚無符合條件的試卷分類</div>
-                  <p className={styles.emptyStateText}>
-                    資料庫中目前沒有已發布的試卷。您可以前往管理後台發布一些考卷，或是點擊上方「載入測試進度數據」！
-                  </p>
-                </div>
-              ) : (
-                categories.map(cat => (
-                  <div 
-                    key={cat.key} 
-                    className={styles.categoryCard}
-                    onClick={() => setSelectedCategoryKey(cat.key)}
-                  >
-                    <div className={styles.categoryCardHeader}>
-                      <span className={styles.yearBadge}>{cat.year} 年</span>
-                      <span className={`${styles.typeBadge} ${cat.type === '學測' ? styles.badgeGsat : styles.badgeTveje}`}>
-                        {cat.type}
-                      </span>
-                    </div>
-                    <h3 className={styles.categoryCardTitle}>{cat.year} 年 {cat.type} 考古題庫</h3>
-                    <div className={styles.categoryCardFooter}>
-                      <span className={styles.examCountText}>包含 {cat.totalExams} 份學科試卷</span>
-                      <span className={styles.enterLink}>進入練習 &rarr;</span>
+                ))}
+              </div>
+            ) : categories.length === 0 ? (
+              <div className={styles.emptyStateContainer}>
+                <div className={styles.emptyStateTitle}>尚無符合條件的試卷分類</div>
+                <p className={styles.emptyStateText}>
+                  資料庫中目前沒有已發布的試卷。您可以前往管理後台發布一些考卷，或是點擊上方「載入測試進度數據」！
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* 學測 Section */}
+                {gsatCategories.length > 0 && (
+                  <div>
+                    {activeFilter === '全部' && (
+                      <h3 className={styles.sectionTitle}>
+                        <span className={styles.badgeGsat} style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', marginRight: '8px', verticalAlign: 'middle', backgroundColor: '#6366f1' }}></span>
+                        學測歷屆考古題庫
+                      </h3>
+                    )}
+                    <div className={styles.categoriesGrid}>
+                      {gsatCategories.map(cat => (
+                        <div 
+                          key={cat.key} 
+                          className={styles.categoryCard}
+                          onClick={() => setSelectedCategoryKey(cat.key)}
+                        >
+                          <div className={styles.categoryCardHeader}>
+                            <span className={styles.yearBadge}>{cat.year} 年</span>
+                            <span className={`${styles.typeBadge} ${styles.badgeGsat}`}>
+                              {cat.type}
+                            </span>
+                          </div>
+                          <h3 className={styles.categoryCardTitle}>{cat.year} 年 {cat.type} 考古題庫</h3>
+                          <div className={styles.categoryCardFooter}>
+                            <span className={styles.examCountText}>包含 {cat.totalExams} 份學科試卷</span>
+                            <span className={styles.enterLink}>進入練習 &rarr;</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                )}
+
+                {/* 分隔橫線 */}
+                {activeFilter === '全部' && gsatCategories.length > 0 && tvejeCategories.length > 0 && (
+                  <div className={styles.sectionDivider} />
+                )}
+
+                {/* 統測 Section */}
+                {tvejeCategories.length > 0 && (
+                  <div style={{ marginTop: activeFilter === '全部' && gsatCategories.length > 0 ? '0' : '24px' }}>
+                    {activeFilter === '全部' && (
+                      <h3 className={styles.sectionTitle}>
+                        <span className={styles.badgeTveje} style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', marginRight: '8px', verticalAlign: 'middle', backgroundColor: '#f97316' }}></span>
+                        統測歷屆考古題庫
+                      </h3>
+                    )}
+                    <div className={styles.categoriesGrid}>
+                      {tvejeCategories.map(cat => (
+                        <div 
+                          key={cat.key} 
+                          className={styles.categoryCard}
+                          onClick={() => setSelectedCategoryKey(cat.key)}
+                        >
+                          <div className={styles.categoryCardHeader}>
+                            <span className={styles.yearBadge}>{cat.year} 年</span>
+                            <span className={`${styles.typeBadge} ${styles.badgeTveje}`}>
+                              {cat.type}
+                            </span>
+                          </div>
+                          <h3 className={styles.categoryCardTitle}>{cat.year} 年 {cat.type} 考古題庫</h3>
+                          <div className={styles.categoryCardFooter}>
+                            <span className={styles.examCountText}>包含 {cat.totalExams} 份學科試卷</span>
+                            <span className={styles.enterLink}>進入練習 &rarr;</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )
           ) : (
             /* 第二層：選定年份下的科目試卷表格列表 */
             <div>
