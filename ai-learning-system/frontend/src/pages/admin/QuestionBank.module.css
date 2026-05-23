@@ -1068,25 +1068,57 @@
   overflow-x: hidden;
 }
 
-/* Force images to always be block-level in all preview containers */
-.qTitlePreview p:has(img) {
-  display: flex;
-  flex-direction: column;
+/* Sibling Images Horizontal Flex Layout */
+.richTextEditorContainer .ProseMirror p:has(img + img),
+.richTextEditorContainer .ProseMirror div:has(img + img),
+.qTitlePreview p:has(img + img),
+.qTitlePreview div:has(img + img) {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
 }
 
+/* Individual Image Default Styles */
 .richTextEditorContainer .ProseMirror img,
 .qTitlePreview img,
 .phoneContent img,
 .desktopPreviewFrame img,
 .tabletContent img {
-  max-width: 100% !important;
-  height: auto !important;
+  max-width: 100%;
+  height: auto;
   border-radius: var(--radius-sm);
-  display: block;
-  clear: both;
   margin: 16px auto;
   object-fit: contain;
-  float: none !important;
+  /* Remove block/clear to allow side-by-side */
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Sibling Image Specific Overrides */
+.richTextEditorContainer .ProseMirror p:has(img + img) img,
+.richTextEditorContainer .ProseMirror div:has(img + img) img,
+.qTitlePreview p:has(img + img) img,
+.qTitlePreview div:has(img + img) img {
+  flex: 1 1 300px;
+  max-width: calc(50% - 8px) !important;
+  height: auto !important;
+  margin: 0 !important;
+  display: inline-block !important;
+}
+
+/* Mobile responsive fallback for images */
+@media (max-width: 768px) {
+  .richTextEditorContainer .ProseMirror p:has(img + img) img,
+  .richTextEditorContainer .ProseMirror div:has(img + img) img,
+  .qTitlePreview p:has(img + img) img,
+  .qTitlePreview div:has(img + img) img {
+    max-width: 100% !important;
+    flex: 1 1 100%;
+  }
 }
 
 .richTextEditorContainer .ProseMirror ul,
