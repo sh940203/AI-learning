@@ -14,7 +14,7 @@ const splitTitle = (title, defaultLabel) => {
       };
     }
   }
-  // 如果沒有輸入冒號，直接將標題設定為主標頭，並將分類名稱顯示在複選框旁
+  // 如果沒有輸入冒號，直接將標題設定為主標頭，並將分類名稱顯示在複選框旁邊111111
   return { header: title, title: defaultLabel };
 };
 
@@ -24,7 +24,7 @@ const TaskTimeline = ({ events, setEvents }) => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const toggleTask = (id) => {
-    setEvents(events.map(event => 
+    setEvents(events.map(event =>
       event.id === id ? { ...event, completed: !event.completed } : event
     ));
   };
@@ -34,10 +34,10 @@ const TaskTimeline = ({ events, setEvents }) => {
     today.setHours(0, 0, 0, 0);
     const eventDate = new Date(eventDateStr);
     eventDate.setHours(0, 0, 0, 0);
-    
+
     const diffTime = eventDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
       return eventTimeStr ? `今天 ${eventTimeStr}` : '今天';
     } else if (diffDays === 1) {
@@ -64,9 +64,9 @@ const TaskTimeline = ({ events, setEvents }) => {
   const triggerAiAssistant = async (event) => {
     const title = event.title;
     setAiLoading(true);
-    setAiOutline({ 
-      title: title, 
-      guide: ["🤖 AI 智慧小助手正在為您量身打造複習重點，請稍候..."] 
+    setAiOutline({
+      title: title,
+      guide: ["🤖 AI 智慧小助手正在為您量身打造複習重點，請稍候..."]
     });
 
     try {
@@ -149,9 +149,9 @@ const TaskTimeline = ({ events, setEvents }) => {
 
   return (
     <div className={styles.timeline} style={{ position: 'relative' }}>
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
         gap: '4px',
         maxHeight: isExpanded ? '1000px' : '450px',
         overflow: 'hidden',
@@ -161,8 +161,8 @@ const TaskTimeline = ({ events, setEvents }) => {
           const prio = getPriorityInfo(task.type);
           const parsed = splitTitle(task.title, prio.label);
           return (
-            <div 
-              key={task.id} 
+            <div
+              key={task.id}
               className={`${styles.taskItem} ${task.completed ? styles.taskCompleted : ''}`}
               style={{
                 borderLeft: `3px solid ${prio.color}`,
@@ -177,16 +177,16 @@ const TaskTimeline = ({ events, setEvents }) => {
               }}
             >
               <div className={styles.taskIcon} style={{ marginTop: '2px' }}>
-                <Circle 
-                  size={16} 
-                  strokeWidth={3} 
-                  style={{ color: prio.color }} 
+                <Circle
+                  size={16}
+                  strokeWidth={3}
+                  style={{ color: prio.color }}
                 />
               </div>
 
               <div className={styles.taskContent} style={{ flex: 1 }}>
                 <div className={styles.taskHeader} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <h4 
+                  <h4
                     className={prio.class}
                     style={{ fontSize: '11px', fontWeight: 'bold', margin: 0 }}
                   >
@@ -198,7 +198,7 @@ const TaskTimeline = ({ events, setEvents }) => {
                 </div>
 
                 <div className={styles.titleRow} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <button 
+                  <button
                     className={`${styles.checkboxBtn} ${task.completed ? styles.checked : ''}`}
                     onClick={() => toggleTask(task.id)}
                     style={{
@@ -262,7 +262,7 @@ const TaskTimeline = ({ events, setEvents }) => {
       </div>
 
       {sortedEvents.length > 3 && (
-        <button 
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
           style={{
             width: '100%',
@@ -321,7 +321,7 @@ const TaskTimeline = ({ events, setEvents }) => {
             padding: '20px',
             position: 'relative'
           }}>
-            <button 
+            <button
               onClick={() => setAiOutline(null)}
               style={{
                 position: 'absolute',
@@ -352,7 +352,7 @@ const TaskTimeline = ({ events, setEvents }) => {
                 </div>
               ))}
             </div>
-            <button 
+            <button
               onClick={() => setAiOutline(null)}
               style={{
                 width: '100%',
