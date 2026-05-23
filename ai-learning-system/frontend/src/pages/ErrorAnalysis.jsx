@@ -267,7 +267,7 @@ const ErrorAnalysis = () => {
               <option value="">── 選擇考卷 ──</option>
               {completedExams.map(p => (
                 <option key={p.examId} value={p.examId}>
-                  {p.examId}
+                  {p.examTitle || p.examId}
                 </option>
               ))}
             </select>

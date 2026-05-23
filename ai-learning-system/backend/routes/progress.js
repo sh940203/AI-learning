@@ -49,8 +49,20 @@ router.get('/stats', auth, async (req, res) => {
 router.get('/exams', auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const progressList = await UserExamProgress.find({ userId });
-    res.status(200).json({ success: true, data: progressList });
+    // 聯集 (populate) 考卷資料取得 title
+    const progressList = await UserExamProgress.find({ userId }).populate('examId', 'title');
+    
+    // 格式化資料，確保 examId 仍然是字串（向下相容前端），但新增 examTitle 欄位
+    const formattedList = progressList.map(p => {
+      const obj = p.toObject();
+      if (obj.examId && typeof obj.examId === 'object') {
+        obj.examTitle = obj.examId.title;
+        obj.examId = obj.examId._id.toString();
+      }
+      return obj;
+    });
+
+    res.status(200).json({ success: true, data: formattedList });
   } catch (error) {
     res.status(500).json({ success: false, message: '讀取進度對照表失敗', error: error.message });
   }
