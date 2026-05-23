@@ -41,6 +41,7 @@ const ExamRenderCore = ({
   deviceType = 'desktop' // 'phone', 'tablet', 'desktop'
 }) => {
   const [localAnswers, setLocalAnswers] = useState({});
+  const [zoomImageSrc, setZoomImageSrc] = useState(null);
   const questionRefs = useRef({});
 
   // 處理管理員預覽時的本地點擊狀態，維持即時預覽高質感互動
@@ -128,6 +129,27 @@ const ExamRenderCore = ({
       });
     }
   }, [currentIndex, activeIsStandard, activeQuestion]);
+
+  // 圖片點擊放大預覽 (Click to Zoom Lightbox)
+  useEffect(() => {
+    const handleImageClick = (e) => {
+      if (e.target.tagName === 'IMG') {
+        if (e.target.src && !e.target.classList.contains(styles.markerBadge)) {
+          setZoomImageSrc(e.target.src);
+        }
+      }
+    };
+
+    const container = document.querySelector(`.${styles.contentCol}`);
+    if (container) {
+      container.addEventListener('click', handleImageClick);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('click', handleImageClick);
+      }
+    };
+  }, [currentIndex, questions]);
 
   if (questions.length === 0) {
     return (
@@ -455,6 +477,15 @@ const ExamRenderCore = ({
           </div>
         )}
       </div>
+
+      {/* 圖片點擊放大高質感 Lightbox 彈窗 */}
+      {zoomImageSrc && (
+        <div className={styles.lightboxOverlay} onClick={() => setZoomImageSrc(null)}>
+          <button className={styles.lightboxClose} onClick={() => setZoomImageSrc(null)}>&times;</button>
+          <img src={zoomImageSrc} alt="Zoomed View" className={styles.lightboxImg} onClick={(e) => e.stopPropagation()} />
+          <div className={styles.lightboxTip}>💡 提示：點擊任何空白處可關閉預覽</div>
+        </div>
+      )}
     </div>
   );
 };
