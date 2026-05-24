@@ -5,10 +5,19 @@ import CalendarWidget from '../components/CalendarWidget';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
+const getRelativeDateStr = (offsetDays) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const defaultEvents = [
   { 
     id: 1, 
-    date: '2026-05-20', 
+    date: getRelativeDateStr(0), 
     time: '21:00',
     title: '計算機概論：期中專案繳交', 
     type: 'red',
@@ -19,7 +28,7 @@ const defaultEvents = [
   },
   { 
     id: 2, 
-    date: '2026-05-21', 
+    date: getRelativeDateStr(1), 
     time: '18:00',
     title: 'AI自主學習：深度學習模組', 
     type: 'blue', // Changed from purple to blue
@@ -29,7 +38,7 @@ const defaultEvents = [
   },
   { 
     id: 3, 
-    date: '2026-05-28', 
+    date: getRelativeDateStr(8), 
     time: '12:00',
     title: '通識英語：單字複習', 
     type: 'orange',
@@ -39,7 +48,7 @@ const defaultEvents = [
   },
   { 
     id: 4, 
-    date: '2026-05-22', 
+    date: getRelativeDateStr(2), 
     time: '14:00',
     title: '資料結構：紅黑樹討論', 
     type: 'blue',
@@ -49,7 +58,7 @@ const defaultEvents = [
   },
   { 
     id: 5, 
-    date: '2026-05-25', 
+    date: getRelativeDateStr(5), 
     time: '19:00',
     title: '課外活動：系學會大會', 
     type: 'green',
@@ -65,13 +74,13 @@ const Dashboard = () => {
   const [greeting, setGreeting] = useState('');
   const [dateStr, setDateStr] = useState('');
   const [events, setEvents] = useState(() => {
-    // Bust cache to v3 to clear out purple categories and load clean default events
-    const saved = localStorage.getItem('ai_learning_events_v3');
+    // Bust cache to v4 to clear out old static dates and load clean relative default events
+    const saved = localStorage.getItem('ai_learning_events_v4');
     return saved ? JSON.parse(saved) : defaultEvents;
   });
 
   useEffect(() => {
-    localStorage.setItem('ai_learning_events_v3', JSON.stringify(events));
+    localStorage.setItem('ai_learning_events_v4', JSON.stringify(events));
   }, [events]);
 
   useEffect(() => {

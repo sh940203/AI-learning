@@ -34,8 +34,13 @@ const getDailyQuote = (day) => {
   return quotes[day % quotes.length];
 };
 
+const getTodayStr = () => {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+};
+
 const CalendarWidget = ({ events, setEvents }) => {
-  const [currentDate, setCurrentDate] = useState(new Date('2026-05-20')); // 基準時間為系統時間 2026-05-20
+  const [currentDate, setCurrentDate] = useState(new Date()); // 基準時間為系統時間
   const [activeFilters, setActiveFilters] = useState(['red', 'blue', 'green', 'orange']);
   const [view, setView] = useState('month'); // 'day', 'week', 'month'
   
@@ -91,7 +96,7 @@ const CalendarWidget = ({ events, setEvents }) => {
       days.push({ day: dayNum, muted: true, dateStr: '', events: [] });
     }
 
-    const todayStr = '2026-05-20';
+    const todayStr = getTodayStr();
 
     for (let i = 1; i <= daysInMonth; i++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -135,7 +140,7 @@ const CalendarWidget = ({ events, setEvents }) => {
         dayNum: nextDay.getDate(),
         dayName: daysOfWeek[i],
         events: dayEvents,
-        today: dateStr === '2026-05-20'
+        today: dateStr === getTodayStr()
       });
     }
     return weekDaysList;

@@ -30,7 +30,7 @@ const TaskTimeline = ({ events, setEvents }) => {
   };
 
   const getCountdownLabel = (eventDateStr, eventTimeStr) => {
-    const today = new Date('2026-05-20'); // 基準系統時間
+    const today = new Date(); // 基準系統時間
     today.setHours(0, 0, 0, 0);
     const eventDate = new Date(eventDateStr);
     eventDate.setHours(0, 0, 0, 0);
