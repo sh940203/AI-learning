@@ -74,49 +74,109 @@ router.post('/suggest', async (req, res) => {
 
 const auth = require('../middleware/authMiddleware');
 const User = require('../models/User');
+const KnowledgeBase = require('../models/KnowledgeBase');
+const path = require('path');
+const fs = require('fs');
 
-// AI Tutor Chat API with daily limits and knowledge base grounding
+// Helper function to read image and convert to Gemini format
+const fileToGenerativePart = (filePath) => {
+  const fullPath = path.join(__dirname, '..', filePath);
+  if (!fs.existsSync(fullPath)) return null;
+  
+  const ext = path.extname(fullPath).toLowerCase();
+  const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+  
+  return {
+    inlineData: {
+      data: fs.readFileSync(fullPath).toString("base64"),
+      mimeType
+    },
+  };
+};
+
+// AI Tutor Chat API (Multi-step Agent Workflow)
 router.post('/tutor', auth, async (req, res) => {
   try {
-    const { history, message, contextText } = req.body;
+    const { history, message, imageUrl } = req.body;
     
-    // 1. Check daily limit
+    // --- 0. 額度檢查 ---
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ success: false, message: '找不到使用者' });
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const lastReset = user.aiUsage?.lastResetDate ? new Date(user.aiUsage.lastResetDate) : new Date(0);
     lastReset.setHours(0, 0, 0, 0);
 
-    // Reset if it's a new day
     if (today > lastReset) {
       if (!user.aiUsage) user.aiUsage = {};
       user.aiUsage.count = 0;
       user.aiUsage.lastResetDate = new Date();
     }
-
     if (user.aiUsage.count >= 5) {
-      return res.status(403).json({ 
-        success: false, 
-        message: '今日 AI 提問次數已達上限 (5/5)！請明天再來。' 
-      });
+      return res.status(403).json({ success: false, message: '今日 AI 提問次數已達上限 (5/5)！請明天再來。' });
     }
-
     if (!process.env.GEMINI_API_KEY) {
-      return res.json({
-        success: true,
-        isMock: true,
-        reply: "⚠️ GEMINI_API_KEY 未設定，此為 Mock 回應。請配置環境變數。",
-        remainingCount: 5 - user.aiUsage.count
-      });
+      return res.json({ success: false, message: '伺服器未設定 GEMINI_API_KEY' });
     }
 
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // 準備圖片 Part
+    const imagePart = imageUrl ? fileToGenerativePart(imageUrl) : null;
+    const initialInputParts = imagePart ? [message, imagePart] : [message];
+
+    // --- Step 1: 意圖分析與關鍵字提取 (Agent Analysis) ---
+    const extractPrompt = `
+分析以下學生的問題（與附件圖片），判斷並回傳3個核心知識點關鍵字、所屬科目、所屬章節。
+請嚴格以 JSON 格式回傳，格式範例：{"keywords": ["資產","負債","業主權益"], "subject": "會計學", "chapter": "會計方程式"}
+若無法判斷，請盡量猜測。不要回傳 markdown 代碼塊，只回傳純 JSON 字串。
+學生問題：${message}
+    `;
+    const extractResult = await model.generateContent([extractPrompt, ...(imagePart ? [imagePart] : [])]);
+    let extractionText = extractResult.response.text().trim();
+    if (extractionText.startsWith('```json')) extractionText = extractionText.replace(/```json|```/g, '').trim();
+    if (extractionText.startsWith('```')) extractionText = extractionText.replace(/```/g, '').trim();
+
+    let extractedInfo = { keywords: [], subject: '', chapter: '' };
+    try {
+      extractedInfo = JSON.parse(extractionText);
+    } catch (e) {
+      console.warn('Agent Step 1 擷取失敗，使用預設值', extractionText);
+      extractedInfo = { keywords: [message.slice(0,5)], subject: '未分類', chapter: '' };
+    }
+
+    // --- Step 2: 系統檢索 (Knowledge Base Retrieval) ---
+    // 利用提取出的 Keyword / Subject 去資料庫尋找對應講義
+    let kbQuery = {};
+    if (extractedInfo.keywords && extractedInfo.keywords.length > 0) {
+      // 假設 KnowledgeBase 有設定 text index (已在 schema 設定)
+      kbQuery = { $text: { $search: extractedInfo.keywords.join(' ') } };
+    } else {
+      kbQuery = { subject: new RegExp(extractedInfo.subject, 'i') };
+    }
+
+    const kbs = await KnowledgeBase.find(kbQuery).limit(2);
+    const kbContext = kbs.length > 0 
+      ? kbs.map(k => `【科目】${k.subject} 【章節】${k.chapter}\n${k.content.substring(0, 3000)}`).join('\n\n') // 擷取部分避免 token 過長
+      : '無相符的教材資料';
+
+    // --- Step 3: 最終推論與解答 (Final Output) ---
+    const systemInstruction = `
+你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心的高職老師。
+【工作流規定】
+請根據以下檢索到的「知識庫內容」來回答學生的問題。請遵循以下步驟作答：
+1. 分析意圖：明確告訴學生這題考的是「${extractedInfo.subject || '某科目'}」的「${extractedInfo.chapter || '某章節'}」單元，關鍵字是 ${extractedInfo.keywords ? extractedInfo.keywords.join(', ') : '無'}。
+2. 逐步拆解：根據知識庫，一步步帶領學生解析問題。
+3. 知識庫限制：如果知識庫內容沒有相關資訊，你可以用自身知識輔助，但必須先聲明「中央知識庫未收錄此內容」。
+
+【中央知識庫檢索結果】
+${kbContext}
+    `;
+
+    const finalModel = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: `你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答必須符合高職生的理解能力，語氣要像是個有耐心的高中老師。
-${contextText ? `\n【重要指令：知識庫限制】\n使用者上傳了以下文件內容，你**必須嚴格限制**只能根據這份內容回答問題。如果使用者的問題無法在這份內容中找到答案，請直接回答：「講義中未提及此內容」，絕對不可以自己編造或依賴外部知識回答。\n\n[文件內容開始]\n${contextText}\n[文件內容結束]` : ''}`
+      systemInstruction
     });
 
     const formattedHistory = (history || []).map(msg => ({
@@ -124,16 +184,13 @@ ${contextText ? `\n【重要指令：知識庫限制】\n使用者上傳了以�
       parts: [{ text: msg.content }]
     }));
 
-    const chat = model.startChat({
+    const chat = finalModel.startChat({
       history: formattedHistory,
-      generationConfig: {
-        maxOutputTokens: 1000,
-      },
+      generationConfig: { maxOutputTokens: 1500 },
     });
 
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const text = response.text();
+    const finalResult = await chat.sendMessage(initialInputParts);
+    const text = finalResult.response.text();
 
     // 扣除額度
     user.aiUsage.count += 1;
@@ -141,17 +198,17 @@ ${contextText ? `\n【重要指令：知識庫限制】\n使用者上傳了以�
 
     return res.json({
       success: true,
-      isMock: false,
       reply: text,
-      remainingCount: 5 - user.aiUsage.count
+      remainingCount: 5 - user.aiUsage.count,
+      agentLog: extractedInfo // 可以回傳給前端開發測試看
     });
 
   } catch (error) {
-    console.error("❌ Gemini Tutor API Error:", error);
+    console.error("❌ Agent Workflow Error:", error);
     return res.status(500).json({
       success: false,
       error: error.message,
-      reply: "抱歉，家教系統目前發生錯誤，請稍後再試。"
+      reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。"
     });
   }
 });

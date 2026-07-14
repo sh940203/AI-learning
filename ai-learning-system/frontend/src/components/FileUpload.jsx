@@ -29,18 +29,19 @@ const FileUpload = ({ onUploadSuccess }) => {
     setSelectedFile(file);
     setUploadProgress(10);
     
-    if (file.type !== 'application/pdf') {
-      alert('目前僅支援上傳 PDF 檔案作為知識庫！');
+    if (!file.type.startsWith('image/')) {
+      alert('目前僅支援上傳圖片檔案 (考卷截圖、題目照片)！');
       setSelectedFile(null);
       setUploadProgress(0);
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    // upload.js /image uses 'image' field
+    formData.append('image', file);
 
     try {
-      const response = await fetch('http://localhost:5001/api/upload/document', {
+      const response = await fetch('http://localhost:5001/api/upload/image', {
         method: 'POST',
         body: formData
       });

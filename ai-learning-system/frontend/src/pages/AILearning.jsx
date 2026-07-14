@@ -18,7 +18,7 @@ const AILearning = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [contextText, setContextText] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [remainingCount, setRemainingCount] = useState(5);
   const messagesEndRef = useRef(null);
 
@@ -31,10 +31,10 @@ const AILearning = () => {
   }, [messages]);
 
   const handleUploadSuccess = (data) => {
-    setContextText(data.text);
-    setMessages([{
+    setImageUrl(data.url);
+    setMessages([...messages, {
       role: 'model',
-      content: `已成功讀取講義「${data.filename}」！我現在已經完全掌握這份文件的內容了，你可以根據裡面的重點向我提問。`
+      content: `已收到您的題目圖片！請在下方輸入您對這張圖片的具體問題，我將為您解析。`
     }]);
   };
 
@@ -66,7 +66,7 @@ const AILearning = () => {
         body: JSON.stringify({
           history: messages,
           message: userMessage,
-          contextText: contextText
+          imageUrl: imageUrl
         })
       });
 
@@ -103,24 +103,25 @@ const AILearning = () => {
       {/* Left Column: File Management */}
       <div className={styles.leftCol}>
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>知識庫建立 (上傳講義)</h2>
+          <h2 className={styles.cardTitle}>上傳您的問題附件 (支援圖片)</h2>
           <FileUpload onUploadSuccess={handleUploadSuccess} />
         </div>
 
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>目前知識庫範圍</h2>
-          {contextText ? (
+          <h2 className={styles.cardTitle}>目前附件狀態</h2>
+          {imageUrl ? (
             <div className={styles.fileItem}>
-              <div className={`${styles.fileIcon} ${styles.iconPdf}`}>
-                <FileText size={20} color="white" />
+              <div className={`${styles.fileIcon} ${styles.iconPdf}`} style={{backgroundColor: '#3b82f6'}}>
+                <File size={20} color="white" />
               </div>
               <div className={styles.fileInfo}>
-                <h4>已載入上傳的講義內容</h4>
-                <p>AI 回答將嚴格限制於此文件範圍</p>
+                <h4>已載入問題圖片</h4>
+                <p>將連同您的文字一起發送給 AI</p>
               </div>
+              <img src={`http://localhost:5001${imageUrl}`} alt="附件預覽" style={{width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px'}} />
             </div>
           ) : (
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>尚未上傳任何文件，AI 僅能使用基礎設定回答。</p>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>尚未上傳任何圖片，AI 僅根據您的文字進行回答。</p>
           )}
         </div>
 
@@ -153,9 +154,9 @@ const AILearning = () => {
             </div>
             <div className={styles.chatHeaderActions}>
               <button onClick={() => {
-                setContextText('');
-                setMessages([{role: 'model', content: '對話與知識庫已重置。您可以重新上傳講義，或是直接提問。'}]);
-              }} title="重置對話與知識庫"><RefreshCw size={18} /></button>
+                setImageUrl('');
+                setMessages([{role: 'model', content: '對話與附件已重置。您可以重新上傳題目圖片，或是直接提問。'}]);
+              }} title="重置對話與附件"><RefreshCw size={18} /></button>
             </div>
           </div>
 
@@ -203,7 +204,7 @@ const AILearning = () => {
               </button>
             </div>
             <div className={styles.inputFooter}>
-              <span>ℹ AI 僅會根據您上傳的知識庫範圍進行回答。</span>
+              <span>ℹ AI 會自動在中央知識庫中尋找解答。</span>
               <span style={{ color: remainingCount <= 0 ? '#ef4444' : 'inherit', fontWeight: remainingCount <= 0 ? 'bold' : 'normal' }}>
                 今日剩餘提問額度: {remainingCount} / 5
               </span>

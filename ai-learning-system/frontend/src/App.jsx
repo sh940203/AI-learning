@@ -17,8 +17,8 @@ import QuestionBankManager from './pages/admin/QuestionBankManager';
 import QuestionBank from './pages/admin/QuestionBank';
 import ExamSetup from './pages/admin/ExamSetup';
 import Announcements from './pages/admin/Announcements';
+import KnowledgeBaseManager from './pages/admin/KnowledgeBaseManager';
 import './index.css';
-
 
 const DummyPage = ({ title }) => (
   <div style={{ padding: '24px', backgroundColor: 'var(--color-bg-main)', height: '100%', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
@@ -59,6 +59,7 @@ function App() {
             <Route path="questions/edit" element={<QuestionBank />} />
             <Route path="questions/exam/new" element={<ExamSetup />} />
             <Route path="announcements" element={<Announcements />} />
+            <Route path="knowledge" element={<KnowledgeBaseManager />} />
             <Route path="settings" element={<DummyPage title="系統設定" />} />
           </Route>
         </Routes>
