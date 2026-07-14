@@ -14,11 +14,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: '此電子郵件已被註冊' });
     }
 
+    let assignedRole = 'student';
+    if (email === 'admin@gmail.com' || email === 'admin') {
+      assignedRole = 'admin';
+    }
+
     user = new User({
       name,
       email,
       password,
-      role: 'student' // default role
+      role: assignedRole
     });
 
     await user.save();

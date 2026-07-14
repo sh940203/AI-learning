@@ -75,55 +75,71 @@ router.post('/suggest', async (req, res) => {
 const auth = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const KnowledgeBase = require('../models/KnowledgeBase');
+const AIChatSession = require('../models/AIChatSession');
 const path = require('path');
 const fs = require('fs');
 
-// Helper function to read image and convert to Gemini format
-const fileToGenerativePart = (filePath) => {
-  const fullPath = path.join(__dirname, '..', filePath);
-  if (!fs.existsSync(fullPath)) return null;
-  
-  const ext = path.extname(fullPath).toLowerCase();
-  const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
-  
+// Helper function to read Base64 image and convert to Gemini format
+const base64ToGenerativePart = (base64String) => {
+  if (!base64String) return null;
+  // Format: data:image/jpeg;base64,...
+  const mimeType = base64String.split(';')[0].split(':')[1];
+  const data = base64String.replace(/^data:image\/\w+;base64,/, '');
   return {
     inlineData: {
-      data: fs.readFileSync(fullPath).toString("base64"),
+      data,
       mimeType
     },
   };
 };
 
-// AI Tutor Chat API (Multi-step Agent Workflow)
-router.post('/tutor', auth, async (req, res) => {
+// GET /api/ai/sessions - Get all chat sessions for the current device
+router.get('/sessions', async (req, res) => {
   try {
-    const { history, message, imageUrl } = req.body;
+    const deviceId = req.header('X-Device-Id');
+    if (!deviceId) return res.status(400).json({ success: false, message: 'Missing Device ID' });
     
-    // --- 0. 額度檢查 ---
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ success: false, message: '找不到使用者' });
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const lastReset = user.aiUsage?.lastResetDate ? new Date(user.aiUsage.lastResetDate) : new Date(0);
-    lastReset.setHours(0, 0, 0, 0);
+    const sessions = await AIChatSession.find({ deviceId })
+      .select('-messages')
+      .sort({ updatedAt: -1 });
+    res.json({ success: true, sessions });
+  } catch (error) {
+    console.error("❌ Fetch Sessions Error:", error);
+    res.status(500).json({ success: false, message: '無法獲取對話紀錄' });
+  }
+});
 
-    if (today > lastReset) {
-      if (!user.aiUsage) user.aiUsage = {};
-      user.aiUsage.count = 0;
-      user.aiUsage.lastResetDate = new Date();
-    }
-    if (user.aiUsage.count >= 5) {
-      return res.status(403).json({ success: false, message: '今日 AI 提問次數已達上限 (5/5)！請明天再來。' });
-    }
+// GET /api/ai/sessions/:id - Get a specific chat session
+router.get('/sessions/:id', async (req, res) => {
+  try {
+    const deviceId = req.header('X-Device-Id');
+    if (!deviceId) return res.status(400).json({ success: false, message: 'Missing Device ID' });
+    
+    const session = await AIChatSession.findOne({ _id: req.params.id, deviceId });
+    if (!session) return res.status(404).json({ success: false, message: '找不到對話紀錄' });
+    res.json({ success: true, session });
+  } catch (error) {
+    console.error("❌ Fetch Session Error:", error);
+    res.status(500).json({ success: false, message: '無法獲取對話內容' });
+  }
+});
+
+// AI Tutor Chat API (Multi-step Agent Workflow)
+router.post('/tutor', async (req, res) => {
+  try {
+    const deviceId = req.header('X-Device-Id');
+    if (!deviceId) return res.status(400).json({ success: false, message: 'Missing Device ID' });
+
+    const { sessionId, history, message, imageUrl } = req.body;
+    
     if (!process.env.GEMINI_API_KEY) {
       return res.json({ success: false, message: '伺服器未設定 GEMINI_API_KEY' });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    // 準備圖片 Part
-    const imagePart = imageUrl ? fileToGenerativePart(imageUrl) : null;
+    // 準備圖片 Part (imageUrl 現在是 Base64 string)
+    const imagePart = imageUrl ? base64ToGenerativePart(imageUrl) : null;
     const initialInputParts = imagePart ? [message, imagePart] : [message];
 
     // --- Step 1: 意圖分析與關鍵字提取 (Agent Analysis) ---
@@ -192,15 +208,37 @@ ${kbContext}
     const finalResult = await chat.sendMessage(initialInputParts);
     const text = finalResult.response.text();
 
-    // 扣除額度
-    user.aiUsage.count += 1;
-    await user.save();
+    // --- Save to Session ---
+    let session;
+    if (sessionId) {
+      session = await AIChatSession.findOne({ _id: sessionId, deviceId });
+    }
+    
+    if (session) {
+      // Append messages
+      session.messages.push({ role: 'user', content: message });
+      session.messages.push({ role: 'model', content: text });
+      await session.save();
+    } else {
+      // Create new session
+      const autoTitle = message.length > 15 ? message.substring(0, 15) + '...' : message;
+      session = new AIChatSession({
+        deviceId,
+        title: autoTitle,
+        imageUrl: imageUrl || '',
+        messages: [
+          { role: 'user', content: message },
+          { role: 'model', content: text }
+        ]
+      });
+      await session.save();
+    }
 
     return res.json({
       success: true,
+      sessionId: session._id,
       reply: text,
-      remainingCount: 5 - user.aiUsage.count,
-      agentLog: extractedInfo // 可以回傳給前端開發測試看
+      agentLog: extractedInfo
     });
 
   } catch (error) {

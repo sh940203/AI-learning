@@ -18,13 +18,6 @@ const knowledgeBaseSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true
-  },
-  fileUrl: {
-    type: String
-  },
-  uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
   }
 }, { timestamps: true });
 

@@ -29,16 +29,13 @@ app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/questions', require('./routes/questions'));
 app.use('/api/folders', require('./routes/folders'));
 app.use('/api/exams', require('./routes/exams'));
-app.use('/api/upload', require('./routes/upload'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/quiz', require('./routes/quiz'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/admin/knowledge', require('./routes/adminKnowledge'));
 
-// 提供靜態檔案存取 (圖片等)
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 資料庫連線 (等待您補上 MONGODB_URI)
 if (process.env.MONGODB_URI) {

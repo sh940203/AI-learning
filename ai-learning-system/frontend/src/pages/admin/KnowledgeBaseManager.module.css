@@ -25,6 +25,20 @@
   margin-bottom: 32px;
 }
 
+.listCard {
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.listTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--color-text-main);
+}
+
 .formGroup {
   margin-bottom: 16px;
 }
@@ -114,4 +128,111 @@
   color: #22c55e;
   border-radius: 4px;
   font-weight: 500;
+}
+
+/* Table Styles */
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+}
+
+.table th {
+  font-weight: 600;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.table td {
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: all 0.2s;
+}
+
+.actionBtn.editBtn:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--color-primary);
+}
+
+.actionBtn.deleteBtn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: var(--color-bg-main);
+  padding: 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.modalContent h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--color-text-main);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-main);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.saveBtn {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
