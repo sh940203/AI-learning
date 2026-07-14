@@ -18,6 +18,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'API is running perfectly!' });
 });
 
+// 根目錄路由
+app.get('/', (req, res) => {
+  res.send('Welcome to AI Learning System API Server');
+});
+
 // 路由設定
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/announcements', require('./routes/announcements'));

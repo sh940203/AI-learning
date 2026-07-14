@@ -72,6 +72,91 @@ router.post('/suggest', async (req, res) => {
   }
 });
 
+const auth = require('../middleware/authMiddleware');
+const User = require('../models/User');
+
+// AI Tutor Chat API with daily limits and knowledge base grounding
+router.post('/tutor', auth, async (req, res) => {
+  try {
+    const { history, message, contextText } = req.body;
+    
+    // 1. Check daily limit
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: '找不到使用者' });
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const lastReset = user.aiUsage?.lastResetDate ? new Date(user.aiUsage.lastResetDate) : new Date(0);
+    lastReset.setHours(0, 0, 0, 0);
+
+    // Reset if it's a new day
+    if (today > lastReset) {
+      if (!user.aiUsage) user.aiUsage = {};
+      user.aiUsage.count = 0;
+      user.aiUsage.lastResetDate = new Date();
+    }
+
+    if (user.aiUsage.count >= 5) {
+      return res.status(403).json({ 
+        success: false, 
+        message: '今日 AI 提問次數已達上限 (5/5)！請明天再來。' 
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        success: true,
+        isMock: true,
+        reply: "⚠️ GEMINI_API_KEY 未設定，此為 Mock 回應。請配置環境變數。",
+        remainingCount: 5 - user.aiUsage.count
+      });
+    }
+
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: `你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答必須符合高職生的理解能力，語氣要像是個有耐心的高中老師。
+${contextText ? `\n【重要指令：知識庫限制】\n使用者上傳了以下文件內容，你**必須嚴格限制**只能根據這份內容回答問題。如果使用者的問題無法在這份內容中找到答案，請直接回答：「講義中未提及此內容」，絕對不可以自己編造或依賴外部知識回答。\n\n[文件內容開始]\n${contextText}\n[文件內容結束]` : ''}`
+    });
+
+    const formattedHistory = (history || []).map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    const chat = model.startChat({
+      history: formattedHistory,
+      generationConfig: {
+        maxOutputTokens: 1000,
+      },
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    const text = response.text();
+
+    // 扣除額度
+    user.aiUsage.count += 1;
+    await user.save();
+
+    return res.json({
+      success: true,
+      isMock: false,
+      reply: text,
+      remainingCount: 5 - user.aiUsage.count
+    });
+
+  } catch (error) {
+    console.error("❌ Gemini Tutor API Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      reply: "抱歉，家教系統目前發生錯誤，請稍後再試。"
+    });
+  }
+});
+
+
 // Helper for offline mockups
 function getMockSuggestions(title) {
   if (title.includes('計算機概論')) {

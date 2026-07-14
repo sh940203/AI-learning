@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['student', 'admin'],
     default: 'student'
+  },
+  aiUsage: {
+    count: { type: Number, default: 0 },
+    lastResetDate: { type: Date, default: Date.now }
   }
 }, { timestamps: true });
 

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UploadCloud, File, CheckCircle } from 'lucide-react';
 import styles from './FileUpload.module.css';
 
-const FileUpload = () => {
+const FileUpload = ({ onUploadSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -25,20 +25,41 @@ const FileUpload = () => {
     e.stopPropagation();
   };
 
-  const simulateUpload = (file) => {
+  const uploadFile = async (file) => {
     setSelectedFile(file);
-    setUploadProgress(0);
+    setUploadProgress(10);
     
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
+    if (file.type !== 'application/pdf') {
+      alert('目前僅支援上傳 PDF 檔案作為知識庫！');
+      setSelectedFile(null);
+      setUploadProgress(0);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:5001/api/upload/document', {
+        method: 'POST',
+        body: formData
       });
-    }, 200);
+      
+      setUploadProgress(50);
+      const data = await response.json();
+      setUploadProgress(100);
+
+      if (data.success && onUploadSuccess) {
+        onUploadSuccess(data);
+      } else if (!data.success) {
+        alert('上傳失敗: ' + data.message);
+        setSelectedFile(null);
+      }
+    } catch (error) {
+      console.error('上傳錯誤', error);
+      alert('上傳發生錯誤');
+      setSelectedFile(null);
+    }
   };
 
   const handleDrop = (e) => {
@@ -48,14 +69,14 @@ const FileUpload = () => {
     
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      simulateUpload(files[0]);
+      uploadFile(files[0]);
     }
   };
 
   const handleFileSelect = (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      simulateUpload(files[0]);
+      uploadFile(files[0]);
     }
   };
 

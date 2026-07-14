@@ -56,4 +56,42 @@ router.post('/image', upload.single('image'), (req, res) => {
   }
 });
 
+const pdfParse = require('pdf-parse');
+
+const docUpload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for documents
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('目前僅支援上傳 PDF 檔案！'), false);
+    }
+  }
+});
+
+// @route   POST /api/upload/document
+// @desc    上傳 PDF 並萃取純文字 (AI 知識庫使用)
+router.post('/document', docUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: '請提供 PDF 檔案' });
+    }
+
+    const filePath = req.file.path;
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdfParse(dataBuffer);
+
+    res.status(200).json({
+      success: true,
+      url: `/uploads/${req.file.filename}`,
+      text: data.text,
+      filename: req.file.originalname,
+      message: '文件解析成功'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '文件解析失敗', error: error.message });
+  }
+});
+
 module.exports = router;
