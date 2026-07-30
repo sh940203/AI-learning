@@ -3,7 +3,6 @@ const router = express.Router();
 const UserExamProgress = require('../models/UserExamProgress');
 const Exam = require('../models/Exam');
 const Question = require('../models/Question');
-const auth = require('../middleware/authMiddleware');
 
 // ============================================================
 // @route   GET /api/analysis/wrong-questions
@@ -12,7 +11,7 @@ const auth = require('../middleware/authMiddleware');
 //          (無 examId)  → 全局模式，取得所有已完成考卷的錯題
 // @access  Private
 // ============================================================
-router.get('/wrong-questions', auth, async (req, res) => {
+router.get('/wrong-questions', async (req, res) => {
   try {
     const userId = req.user.id;
     const { examId } = req.query;
@@ -99,7 +98,7 @@ router.get('/wrong-questions', auth, async (req, res) => {
 //          (無任何 query)    → 全局所有科目的分組統計
 // @access  Private
 // ============================================================
-router.get('/mastery', auth, async (req, res) => {
+router.get('/mastery', async (req, res) => {
   try {
     const userId = req.user.id;
     const { examId, subject } = req.query;
@@ -180,7 +179,7 @@ router.get('/mastery', auth, async (req, res) => {
 // @desc    召喚 AI 針對指定錯題，產生個人化的「謬誤/盲點/建議」三維度解析
 // @access  Private
 // ============================================================
-router.post('/ai-explain', auth, async (req, res) => {
+router.post('/ai-explain', async (req, res) => {
   try {
     const { questionId, studentSelected, correctOptions, questionHtml } = req.body;
 

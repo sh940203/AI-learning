@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Question = require('../models/Question');
-const auth = require('../middleware/authMiddleware');
 
 // ============================================================
 // @route   POST /api/quiz/generate
@@ -9,7 +8,7 @@ const auth = require('../middleware/authMiddleware');
 // @body    { tags: string[], count: number, examId?: string (排除指定試卷) }
 // @access  Private
 // ============================================================
-router.post('/generate', auth, async (req, res) => {
+router.post('/generate', async (req, res) => {
   try {
     const { tags = [], count = 10, excludeExamId } = req.body;
 

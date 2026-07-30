@@ -2,12 +2,11 @@ const express = require('express');
 const router = express.Router();
 const UserExamProgress = require('../models/UserExamProgress');
 const Exam = require('../models/Exam');
-const auth = require('../middleware/authMiddleware');
 
 // @route   GET /api/progress/stats
 // @desc    取得目前登入學生的整體統計數據 (完成度、平均分數)
 // @access  Private
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -46,7 +45,7 @@ router.get('/stats', auth, async (req, res) => {
 // @route   GET /api/progress/exams
 // @desc    取得此學生的所有試卷作答進度對照表
 // @access  Private
-router.get('/exams', auth, async (req, res) => {
+router.get('/exams', async (req, res) => {
   try {
     const userId = req.user.id;
     // 聯集 (populate) 考卷資料取得 title
@@ -71,7 +70,7 @@ router.get('/exams', auth, async (req, res) => {
 // @route   POST /api/progress/update
 // @desc    更新或建立試卷作答進度 (如開始考試、繼續練習、完成考試)
 // @access  Private
-router.post('/update', auth, async (req, res) => {
+router.post('/update', async (req, res) => {
   try {
     const userId = req.user.id;
     const { examId, status, progressRate, score, answers } = req.body;
@@ -170,7 +169,7 @@ router.post('/update', auth, async (req, res) => {
 // @route   POST /api/progress/seed
 // @desc    測試用：自動為學生產生模擬作答進度數據 (便於前端直接顯示 已完成/進行中 等效果)
 // @access  Private
-router.post('/seed', auth, async (req, res) => {
+router.post('/seed', async (req, res) => {
   try {
     const userId = req.user.id;
 

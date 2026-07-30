@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Announcement = require('../models/Announcement');
-const auth = require('../middleware/authMiddleware');
 
 // @route   GET /api/announcements
 // @desc    Get all announcements

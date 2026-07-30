@@ -16,8 +16,15 @@ const upload = multer({
   }
 });
 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+let genAI = null;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
+
 // @route   POST /api/admin/knowledge/upload
-// @desc    Uploads a textbook PDF, parse it and save to DB (discarding the file)
+// @desc    Uploads a textbook PDF, parse it, chunk it, embed it, and save to DB
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { subject, chapter, title } = req.body;
@@ -29,19 +36,43 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const dataBuffer = req.file.buffer;
     const data = await pdfParse(dataBuffer);
 
-    const newKb = new KnowledgeBase({
-      title: title || req.file.originalname,
-      subject: subject || '未分類',
-      chapter: chapter || '未分類',
-      content: data.text
-    });
+    // 簡單的文字切塊邏輯 (每 1000 字一塊)
+    const rawText = data.text.replace(/\n\s*\n/g, '\n').trim();
+    const chunks = rawText.match(/[\s\S]{1,1000}/g) || [];
+    
+    const newKbs = [];
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkContent = chunks[i];
+      let chunkEmbedding = [];
+      
+      // 呼叫 Gemini 產生 Embedding
+      if (genAI) {
+        try {
+          const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+          const result = await model.embedContent(chunkContent);
+          chunkEmbedding = result.embedding.values;
+        } catch (embedError) {
+          console.error("❌ Embedding 失敗:", embedError);
+        }
+      }
 
-    await newKb.save();
+      newKbs.push({
+        title: (title || req.file.originalname) + (chunks.length > 1 ? ` (Part ${i+1})` : ''),
+        subject: subject || '未分類',
+        chapter: chapter || '未分類',
+        content: chunkContent,
+        embedding: chunkEmbedding.length > 0 ? chunkEmbedding : undefined
+      });
+    }
+
+    // 批次寫入資料庫
+    const savedDocs = await KnowledgeBase.insertMany(newKbs);
 
     res.status(200).json({
       success: true,
-      message: '知識庫建立成功',
-      data: newKb
+      message: `知識庫建立成功，共切分為 ${chunks.length} 個區塊`,
+      data: savedDocs
     });
   } catch (error) {
     console.error("❌ Knowledge Base Upload Error:", error);

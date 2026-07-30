@@ -72,7 +72,6 @@ router.post('/suggest', async (req, res) => {
   }
 });
 
-const auth = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const KnowledgeBase = require('../models/KnowledgeBase');
 const AIChatSession = require('../models/AIChatSession');
@@ -162,29 +161,45 @@ router.post('/tutor', async (req, res) => {
       extractedInfo = { keywords: [message.slice(0,5)], subject: '未分類', chapter: '' };
     }
 
-    // --- Step 2: 系統檢索 (Knowledge Base Retrieval) ---
-    // 利用提取出的 Keyword / Subject 去資料庫尋找對應講義
-    let kbQuery = {};
-    if (extractedInfo.keywords && extractedInfo.keywords.length > 0) {
-      // 假設 KnowledgeBase 有設定 text index (已在 schema 設定)
-      kbQuery = { $text: { $search: extractedInfo.keywords.join(' ') } };
-    } else {
-      kbQuery = { subject: new RegExp(extractedInfo.subject, 'i') };
-    }
+    // --- Step 2: 系統檢索 (RAG Vector Search) ---
+    let kbContext = '無相符的教材資料';
+    if (genAI) {
+      try {
+        // 將學生的原問題轉為向量
+        const embedModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const embedResult = await embedModel.embedContent(message);
+        const queryVector = embedResult.embedding.values;
 
-    const kbs = await KnowledgeBase.find(kbQuery).limit(2);
-    const kbContext = kbs.length > 0 
-      ? kbs.map(k => `【科目】${k.subject} 【章節】${k.chapter}\n${k.content.substring(0, 3000)}`).join('\n\n') // 擷取部分避免 token 過長
-      : '無相符的教材資料';
+        // 使用 MongoDB Atlas Vector Search 進行相似度比對
+        const kbs = await KnowledgeBase.aggregate([
+          {
+            $vectorSearch: {
+              index: "vector_index", // 注意：需在 Atlas 後台建立名為 vector_index 的 Search Index
+              path: "embedding",
+              queryVector: queryVector,
+              numCandidates: 10,
+              limit: 3
+            }
+          }
+        ]);
+
+        if (kbs.length > 0) {
+          kbContext = kbs.map(k => `【科目】${k.subject} 【章節】${k.chapter}\n${k.content}`).join('\n\n---\n\n');
+        }
+      } catch (searchError) {
+        console.error("❌ Vector Search 失敗 (確認是否已在 Atlas 建立 vector_index):", searchError);
+        kbContext = '系統搜尋教材時發生錯誤，請通知管理員。';
+      }
+    }
 
     // --- Step 3: 最終推論與解答 (Final Output) ---
     const systemInstruction = `
 你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心的高職老師。
-【工作流規定】
-請根據以下檢索到的「知識庫內容」來回答學生的問題。請遵循以下步驟作答：
-1. 分析意圖：明確告訴學生這題考的是「${extractedInfo.subject || '某科目'}」的「${extractedInfo.chapter || '某章節'}」單元，關鍵字是 ${extractedInfo.keywords ? extractedInfo.keywords.join(', ') : '無'}。
-2. 逐步拆解：根據知識庫，一步步帶領學生解析問題。
-3. 知識庫限制：如果知識庫內容沒有相關資訊，你可以用自身知識輔助，但必須先聲明「中央知識庫未收錄此內容」。
+【工作流與守門員機制規定】
+你「嚴格且僅能」根據以下檢索到的「中央知識庫檢索結果」來回答學生的問題。請遵循以下步驟作答：
+1. 【嚴格限制】如果你判斷學生的問題「完全無法」用以下的知識庫內容回答（也就是超出教材範圍），你必須直接拒絕回答，並回覆：『這似乎超出了目前的學科教材範圍喔！請確認是否傳錯範圍了。』。絕對不可使用你自己的常識或捏造答案。
+2. 分析意圖：如果可以回答，明確告訴學生這題考的是什麼知識點。
+3. 逐步拆解：根據知識庫內容，一步步帶領學生解析問題。
 
 【中央知識庫檢索結果】
 ${kbContext}

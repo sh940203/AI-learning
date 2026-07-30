@@ -18,6 +18,10 @@ const knowledgeBaseSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true
+  },
+  embedding: {
+    type: [Number],
+    required: false
   }
 }, { timestamps: true });
 
