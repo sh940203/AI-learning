@@ -34,6 +34,7 @@ app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/quiz', require('./routes/quiz'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/admin/knowledge', require('./routes/adminKnowledge'));
+app.use('/api/admin/logs', require('./routes/adminLogs'));
 
 const path = require('path');
 

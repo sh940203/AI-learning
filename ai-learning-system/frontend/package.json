@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@tiptap/core": "^3.22.5",
     "@tiptap/extension-color": "^3.22.5",
     "@tiptap/extension-image": "^3.22.5",
@@ -25,7 +26,10 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-katex": "^3.1.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "tiptap-extension-resizable-image": "^2.1.0",
     "xlsx": "^0.18.5"
   },

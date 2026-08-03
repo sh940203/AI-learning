@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, RefreshCw, Loader2, MessageSquare, Plus, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+import 'katex/dist/katex.min.css';
 import styles from './AILearning.module.css';
 
 const generateDeviceId = () => {
@@ -132,7 +137,11 @@ const AILearning = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5001/api/ai/tutor', {
+      setIsLoading(false);
+      let modelContent = '';
+      setMessages(prev => [...prev, { role: 'model', content: '' }]);
+
+      await fetchEventSource('http://localhost:5001/api/ai/tutor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,30 +152,45 @@ const AILearning = () => {
           history: messages.filter(m => !m.content.includes('你好！我是一位專屬商科')),
           message: userMessage,
           imageUrl: imageUrl
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessages([...newMessages, { role: 'model', content: data.reply }]);
-        
-        const currentCount = parseInt(localStorage.getItem('ai_usage_count') || '0', 10);
-        localStorage.setItem('ai_usage_count', (currentCount + 1).toString());
-        setRemainingCount(Math.max(0, 5 - (currentCount + 1)));
-
-        if (data.sessionId && !activeSessionId) {
-          setActiveSessionId(data.sessionId);
-          fetchSessions();
+        }),
+        onmessage(ev) {
+          try {
+            const data = JSON.parse(ev.data);
+            if (data.type === 'chunk') {
+              modelContent += data.text;
+              setMessages(prev => {
+                const newMsg = [...prev];
+                newMsg[newMsg.length - 1].content = modelContent;
+                return newMsg;
+              });
+            } else if (data.type === 'done') {
+              if (data.sessionId && !activeSessionId) {
+                setActiveSessionId(data.sessionId);
+                fetchSessions();
+              }
+              const currentCount = parseInt(localStorage.getItem('ai_usage_count') || '0', 10);
+              localStorage.setItem('ai_usage_count', (currentCount + 1).toString());
+              setRemainingCount(Math.max(0, 5 - (currentCount + 1)));
+            } else if (data.type === 'error') {
+               setMessages(prev => {
+                const newMsg = [...prev];
+                newMsg[newMsg.length - 1].content = data.reply;
+                return newMsg;
+              });
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        },
+        onerror(err) {
+          console.error("SSE Connection Error", err);
+          throw err;
         }
-      } else {
-        setMessages([...newMessages, { role: 'model', content: data.reply || data.message || '發生錯誤，請稍後再試。' }]);
-      }
+      });
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages([...newMessages, { role: 'model', content: '網路錯誤，無法連接到家教系統。' }]);
-    } finally {
       setIsLoading(false);
+      setMessages([...newMessages, { role: 'model', content: '網路錯誤，無法連接到家教系統。' }]);
     }
   };
 
@@ -220,7 +244,16 @@ const AILearning = () => {
             <div key={index} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : ''}`}>
               {msg.role === 'model' && <div className={styles.aiAvatarSmall}></div>}
               <div className={msg.role === 'user' ? styles.userBubble : styles.messageBubble}>
-                <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                {msg.role === 'user' ? (
+                  <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                ) : (
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen } from 'lucide-react';
+import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './AdminLayout.module.css';
 
@@ -37,6 +37,9 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/knowledge" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="中央知識庫管理">
             <BookOpen size={20} /> <span className={styles.navItemText}>中央知識庫</span>
+          </NavLink>
+          <NavLink to="/admin/logs/unanswered" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="超綱問題追蹤">
+            <AlertCircle size={20} /> <span className={styles.navItemText}>超綱問題追蹤</span>
           </NavLink>
           <NavLink to="/admin/announcements" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="公告系統">
             <Megaphone size={20} /> <span className={styles.navItemText}>公告系統</span>

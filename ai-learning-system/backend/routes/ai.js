@@ -75,6 +75,7 @@ router.post('/suggest', async (req, res) => {
 const User = require('../models/User');
 const KnowledgeBase = require('../models/KnowledgeBase');
 const AIChatSession = require('../models/AIChatSession');
+const UnansweredLog = require('../models/UnansweredLog');
 const path = require('path');
 const fs = require('fs');
 
@@ -197,7 +198,7 @@ router.post('/tutor', async (req, res) => {
 你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心的高職老師。
 【工作流與守門員機制規定】
 你「嚴格且僅能」根據以下檢索到的「中央知識庫檢索結果」來回答學生的問題。請遵循以下步驟作答：
-1. 【嚴格限制】如果你判斷學生的問題「完全無法」用以下的知識庫內容回答（也就是超出教材範圍），你必須直接拒絕回答，並回覆：『這似乎超出了目前的學科教材範圍喔！請確認是否傳錯範圍了。』。絕對不可使用你自己的常識或捏造答案。
+1. 【嚴格限制】如果你判斷學生的問題「完全無法」用以下的知識庫內容回答（也就是超出教材範圍），你必須直接拒絕回答，並回覆：『這似乎超出了目前的學科教材範圍喔！請確認是否傳錯範圍了。』。並且，當你拒絕回答時，請務必在回覆的最前面加上隱藏標籤：[OUT_OF_SCOPE]。絕對不可使用你自己的常識或捏造答案。
 2. 分析意圖：如果可以回答，明確告訴學生這題考的是什麼知識點。
 3. 逐步拆解：根據知識庫內容，一步步帶領學生解析問題。
 
@@ -220,8 +221,28 @@ ${kbContext}
       generationConfig: { maxOutputTokens: 1500 },
     });
 
-    const finalResult = await chat.sendMessage(initialInputParts);
-    const text = finalResult.response.text();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // 發送 agent 分析結果
+    res.write(`data: ${JSON.stringify({ type: 'agentLog', agentLog: extractedInfo })}\n\n`);
+
+    let fullResponseText = '';
+    let isOutOfScope = false;
+    const resultStream = await chat.sendMessageStream(initialInputParts);
+
+    for await (const chunk of resultStream.stream) {
+      let chunkText = chunk.text();
+      if (chunkText.includes('[OUT_OF_SCOPE]')) {
+        isOutOfScope = true;
+        chunkText = chunkText.replace('[OUT_OF_SCOPE]', '');
+      }
+      fullResponseText += chunkText;
+      if (chunkText) {
+        res.write(`data: ${JSON.stringify({ type: 'chunk', text: chunkText })}\n\n`);
+      }
+    }
 
     // --- Save to Session ---
     let session;
@@ -232,7 +253,7 @@ ${kbContext}
     if (session) {
       // Append messages
       session.messages.push({ role: 'user', content: message });
-      session.messages.push({ role: 'model', content: text });
+      session.messages.push({ role: 'model', content: fullResponseText });
       await session.save();
     } else {
       // Create new session
@@ -243,26 +264,40 @@ ${kbContext}
         imageUrl: imageUrl || '',
         messages: [
           { role: 'user', content: message },
-          { role: 'model', content: text }
+          { role: 'model', content: fullResponseText }
         ]
       });
       await session.save();
     }
 
-    return res.json({
-      success: true,
-      sessionId: session._id,
-      reply: text,
-      agentLog: extractedInfo
-    });
+    // --- Check for Unanswered Log ---
+    if (isOutOfScope) {
+      try {
+        await UnansweredLog.create({
+          question: message,
+          deviceId
+        });
+      } catch (logErr) {
+        console.error("Failed to log unanswered question:", logErr);
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'done', sessionId: session._id })}\n\n`);
+    return res.end();
 
   } catch (error) {
     console.error("❌ Agent Workflow Error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。"
-    });
+    // 如果 Header 已經送出，則使用 res.write 發送錯誤
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ type: 'error', reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。" })}\n\n`);
+      return res.end();
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。"
+      });
+    }
   }
 });
 
