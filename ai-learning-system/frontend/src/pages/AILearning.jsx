@@ -7,13 +7,57 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import 'katex/dist/katex.min.css';
 import styles from './AILearning.module.css';
 
+const DAILY_LIMIT = 5;
+const STORAGE_KEY = 'ai_daily_question_records';
+
 const generateDeviceId = () => {
   return 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
 };
 
+const getTodayDateStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// 讀取 localStorage 紀錄 [日期]: [已發問次數]
+const getDailyQuestionRecords = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+// 取得今日已發問次數
+const getTodayQuestionCount = () => {
+  const records = getDailyQuestionRecords();
+  const today = getTodayDateStr();
+  if (typeof records[today] === 'number') {
+    return records[today];
+  }
+  const fallback = localStorage.getItem(today);
+  return fallback ? parseInt(fallback, 10) : 0;
+};
+
+// 成功發送後更新 localStorage 紀錄 [日期]: [已發問次數]
+const incrementTodayQuestionCount = () => {
+  const records = getDailyQuestionRecords();
+  const today = getTodayDateStr();
+  const currentCount = typeof records[today] === 'number' ? records[today] : 0;
+  const newCount = currentCount + 1;
+  records[today] = newCount;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  localStorage.setItem(today, newCount.toString());
+  return newCount;
+};
+
 const AILearning = () => {
   const [deviceId, setDeviceId] = useState('');
-  const [remainingCount, setRemainingCount] = useState(5);
+  const [usedCount, setUsedCount] = useState(0);
   
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -31,6 +75,9 @@ const AILearning = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const remainingCount = Math.max(0, DAILY_LIMIT - usedCount);
+  const isLimitReached = usedCount >= DAILY_LIMIT;
+
   useEffect(() => {
     // 1. Setup Device ID
     let storedDeviceId = localStorage.getItem('ai_device_id');
@@ -40,17 +87,9 @@ const AILearning = () => {
     }
     setDeviceId(storedDeviceId);
 
-    // 2. Setup Limits
-    const todayStr = new Date().toDateString();
-    const storedDate = localStorage.getItem('ai_usage_date');
-    if (storedDate !== todayStr) {
-      localStorage.setItem('ai_usage_date', todayStr);
-      localStorage.setItem('ai_usage_count', '0');
-      setRemainingCount(5);
-    } else {
-      const count = parseInt(localStorage.getItem('ai_usage_count') || '0', 10);
-      setRemainingCount(Math.max(0, 5 - count));
-    }
+    // 2. 檢查 localStorage 紀錄發問次數 [日期]: [已發問次數]
+    const count = getTodayQuestionCount();
+    setUsedCount(count);
   }, []);
 
   const scrollToBottom = () => {
@@ -104,8 +143,10 @@ const AILearning = () => {
       content: '你好！我是一位專屬商科與專業科目的 AI 學習導師。你可以上傳題目圖片，我會根據中央知識庫幫助你解答！'
     }]);
     setImageUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // 任務 A：前端圖片轉換為 Base64 字串並進行圖片預覽
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -117,22 +158,31 @@ const AILearning = () => {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      setImageUrl(event.target.result);
+      const base64String = event.target.result;
+      setImageUrl(base64String);
     };
     reader.readAsDataURL(file);
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-    if (remainingCount <= 0) {
-      alert('今日提問次數已達上限，請明天再來！');
+    if (!inputValue.trim() && !imageUrl) return;
+    
+    // 任務 B：發問次數上限檢查
+    if (isLimitReached) {
+      alert('今日發問額度已用盡，請明日再來！');
       return;
     }
 
     const userMessage = inputValue.trim();
+    const currentBase64 = imageUrl;
     setInputValue('');
+    setImageUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     
-    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    const newMessages = [
+      ...messages,
+      { role: 'user', content: userMessage, imageUrl: currentBase64 }
+    ];
     setMessages(newMessages);
     setIsLoading(true);
 
@@ -141,6 +191,7 @@ const AILearning = () => {
       let modelContent = '';
       setMessages(prev => [...prev, { role: 'model', content: '' }]);
 
+      // 任務 A：Payload 修改，將 Base64 字串與文字訊息發送給後端
       await fetchEventSource('http://localhost:5001/api/ai/tutor', {
         method: 'POST',
         headers: {
@@ -151,7 +202,7 @@ const AILearning = () => {
           sessionId: activeSessionId,
           history: messages.filter(m => !m.content.includes('你好！我是一位專屬商科')),
           message: userMessage,
-          imageUrl: imageUrl
+          imageUrl: currentBase64
         }),
         onmessage(ev) {
           try {
@@ -168,9 +219,9 @@ const AILearning = () => {
                 setActiveSessionId(data.sessionId);
                 fetchSessions();
               }
-              const currentCount = parseInt(localStorage.getItem('ai_usage_count') || '0', 10);
-              localStorage.setItem('ai_usage_count', (currentCount + 1).toString());
-              setRemainingCount(Math.max(0, 5 - (currentCount + 1)));
+              // 任務 B：每次成功發送/回應後更新 localStorage 發問紀錄 [日期]: [已發問次數]
+              const newCount = incrementTodayQuestionCount();
+              setUsedCount(newCount);
             } else if (data.type === 'error') {
                setMessages(prev => {
                 const newMsg = [...prev];
@@ -244,6 +295,13 @@ const AILearning = () => {
             <div key={index} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : ''}`}>
               {msg.role === 'model' && <div className={styles.aiAvatarSmall}></div>}
               <div className={msg.role === 'user' ? styles.userBubble : styles.messageBubble}>
+                {msg.imageUrl && (
+                  <img 
+                    src={msg.imageUrl} 
+                    alt="附加圖片預覽" 
+                    style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', marginBottom: '8px', display: 'block' }} 
+                  />
+                )}
                 {msg.role === 'user' ? (
                   <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
                 ) : (
@@ -271,17 +329,30 @@ const AILearning = () => {
         </div>
 
         <div className={styles.inputContainer}>
+          {/* 任務 B：當日已達 5 次上限時顯示友善提示條 */}
+          {isLimitReached && (
+            <div className={styles.limitNoticeBanner}>
+              <span>🚫 今日發問額度已用盡（5/5 次），請明日再來！</span>
+            </div>
+          )}
+
+          {/* 任務 A：圖片預覽區塊 */}
           {imageUrl && (
             <div className={styles.imagePreviewArea}>
-              <img src={imageUrl} alt="附件" className={styles.previewImg} />
+              <img src={imageUrl} alt="附件預覽" className={styles.previewImg} />
               <div>
-                <p>已附加圖片</p>
+                <p>已選擇圖片 (Base64)</p>
               </div>
-              <button className={styles.removeImageBtn} onClick={() => setImageUrl('')}>
+              <button 
+                className={styles.removeImageBtn} 
+                onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                title="移除圖片"
+              >
                 <X size={16} />
               </button>
             </div>
           )}
+
           <div className={styles.inputWrapper}>
             <input 
               type="file" 
@@ -289,31 +360,39 @@ const AILearning = () => {
               style={{ display: 'none' }} 
               ref={fileInputRef} 
               onChange={handleFileChange} 
+              disabled={isLoading || isLimitReached}
             />
-            <button className={styles.attachBtn} onClick={() => fileInputRef.current?.click()} title="上傳圖片">
+            <button 
+              className={styles.attachBtn} 
+              onClick={() => fileInputRef.current?.click()} 
+              title={isLimitReached ? "發問額度已用盡" : "上傳圖片 (Base64)"}
+              disabled={isLoading || isLimitReached}
+            >
               <Paperclip size={20} />
             </button>
             <input 
               type="text" 
-              placeholder={remainingCount <= 0 ? "今日額度已用盡" : "向 AI 導師提問..."} 
+              placeholder={isLimitReached ? "今日發問額度已用盡，請明日再來！" : "向 AI 導師提問..."} 
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading || remainingCount <= 0}
+              disabled={isLoading || isLimitReached}
             />
             <button 
               className={styles.sendBtn} 
               onClick={handleSendMessage}
-              disabled={isLoading || !inputValue.trim() || remainingCount <= 0}
-              style={{ opacity: (isLoading || !inputValue.trim() || remainingCount <= 0) ? 0.5 : 1 }}
+              disabled={isLoading || (!inputValue.trim() && !imageUrl) || isLimitReached}
+              style={{ opacity: (isLoading || (!inputValue.trim() && !imageUrl) || isLimitReached) ? 0.5 : 1 }}
+              title={isLimitReached ? "今日發問額度已用盡" : "發送訊息"}
             >
               <Send size={18} />
             </button>
           </div>
+
           <div className={styles.inputFooter}>
             <span>ℹ AI 會自動在中央知識庫中尋找解答。</span>
-            <span style={{ color: remainingCount <= 0 ? '#ef4444' : 'inherit', fontWeight: remainingCount <= 0 ? 'bold' : 'normal' }}>
-              今日剩餘提問額度: {remainingCount} / 5
+            <span style={{ color: isLimitReached ? '#ef4444' : 'inherit', fontWeight: isLimitReached ? 'bold' : 'normal' }}>
+              {isLimitReached ? '今日發問額度已用盡 (0 / 5)' : `今日剩餘提問額度: ${remainingCount} / 5`}
             </span>
           </div>
         </div>
