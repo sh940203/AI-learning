@@ -49,7 +49,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       // 呼叫 Gemini 產生 Embedding
       if (genAI) {
         try {
-          const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+          const model = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
           const result = await model.embedContent(chunkContent);
           chunkEmbedding = result.embedding.values;
         } catch (embedError) {

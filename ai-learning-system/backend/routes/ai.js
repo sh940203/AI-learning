@@ -21,7 +21,7 @@ router.post('/suggest', async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
 你是一位專業的學術指導導師。
@@ -136,7 +136,7 @@ router.post('/tutor', async (req, res) => {
       return res.json({ success: false, message: '伺服器未設定 GEMINI_API_KEY' });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     
     // 準備圖片 Part (imageUrl 現在是 Base64 string)
     const imagePart = imageUrl ? base64ToGenerativePart(imageUrl) : null;
@@ -167,7 +167,7 @@ router.post('/tutor', async (req, res) => {
     if (genAI) {
       try {
         // 將學生的原問題轉為向量
-        const embedModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
         const embedResult = await embedModel.embedContent(message);
         const queryVector = embedResult.embedding.values;
 
@@ -207,7 +207,7 @@ ${kbContext}
     `;
 
     const finalModel = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       systemInstruction
     });
 
