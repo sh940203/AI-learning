@@ -76,6 +76,7 @@ const User = require('../models/User');
 const KnowledgeBase = require('../models/KnowledgeBase');
 const AIChatSession = require('../models/AIChatSession');
 const UnansweredLog = require('../models/UnansweredLog');
+const QuestionAnalytics = require('../models/QuestionAnalytics');
 const path = require('path');
 const fs = require('fs');
 
@@ -201,6 +202,7 @@ router.post('/tutor', async (req, res) => {
 1. 【嚴格限制】如果你判斷學生的問題「完全無法」用以下的知識庫內容回答（也就是超出教材範圍），你必須直接拒絕回答，並回覆：『這似乎超出了目前的學科教材範圍喔！請確認是否傳錯範圍了。』。並且，當你拒絕回答時，請務必在回覆的最前面加上隱藏標籤：[OUT_OF_SCOPE]。絕對不可使用你自己的常識或捏造答案。
 2. 分析意圖：如果可以回答，明確告訴學生這題考的是什麼知識點。
 3. 逐步拆解：根據知識庫內容，一步步帶領學生解析問題。
+4. 知識點標籤：請在你回覆的**最末尾**，務必加上一個知識點標籤，格式為 `[TAG:知識點名稱]`。例如：`[TAG:折舊計算]`。請注意標籤只能有一個，且必須是獨立的一行，放在最後面。
 
 【中央知識庫檢索結果】
 ${kbContext}
@@ -241,6 +243,21 @@ ${kbContext}
       fullResponseText += chunkText;
       if (chunkText) {
         res.write(`data: ${JSON.stringify({ type: 'chunk', text: chunkText })}\n\n`);
+      }
+    }
+
+    // --- 解析標籤 ---
+    const tagMatch = fullResponseText.match(/\[TAG:(.*?)\]/);
+    if (tagMatch && !isOutOfScope) {
+      const extractedTag = tagMatch[1].trim();
+      // Remove the tag from the final saved text
+      fullResponseText = fullResponseText.replace(/\[TAG:.*?\]/g, '').trim();
+      
+      // Save to QuestionAnalytics
+      try {
+        await QuestionAnalytics.create({ tag: extractedTag });
+      } catch (err) {
+        console.error("Error saving QuestionAnalytics:", err);
       }
     }
 

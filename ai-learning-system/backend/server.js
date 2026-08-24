@@ -33,8 +33,10 @@ app.use('/api/progress', require('./routes/progress'));
 app.use('/api/analysis', require('./routes/analysis'));
 app.use('/api/quiz', require('./routes/quiz'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', require('./routes/ai-utils'));
 app.use('/api/admin/knowledge', require('./routes/adminKnowledge'));
 app.use('/api/admin/logs', require('./routes/adminLogs'));
+app.use('/api/admin/analytics', require('./routes/adminAnalytics'));
 
 const path = require('path');
 

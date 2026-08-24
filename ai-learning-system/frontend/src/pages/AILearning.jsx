@@ -71,6 +71,8 @@ const AILearning = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [pdfText, setPdfText] = useState('');
+  const [pdfName, setPdfName] = useState('');
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -143,29 +145,54 @@ const AILearning = () => {
       content: '你好！我是一位專屬商科與專業科目的 AI 學習導師。你可以上傳題目圖片，我會根據中央知識庫幫助你解答！'
     }]);
     setImageUrl('');
+    setPdfText('');
+    setPdfName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // 任務 A：前端圖片轉換為 Base64 字串並進行圖片預覽
-  const handleFileChange = (e) => {
+  // 任務 A：前端圖片/PDF上傳處理
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (!file.type.startsWith('image/')) {
-      alert('目前僅支援圖片！');
-      return;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target.result;
+        setImageUrl(base64String);
+        setPdfText('');
+        setPdfName('');
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      setIsLoading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('http://localhost:5001/api/ai/parse-pdf', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          setPdfText(data.text);
+          setPdfName(file.name);
+          setImageUrl('');
+        } else {
+          alert(data.message || 'PDF 解析失敗');
+        }
+      } catch (err) {
+        alert('上傳 PDF 發生網路錯誤');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      alert('目前僅支援圖片與 PDF 格式！');
     }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target.result;
-      setImageUrl(base64String);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() && !imageUrl) return;
+    if (!inputValue.trim() && !imageUrl && !pdfText) return;
     
     // 任務 B：發問次數上限檢查
     if (isLimitReached) {
@@ -175,13 +202,18 @@ const AILearning = () => {
 
     const userMessage = inputValue.trim();
     const currentBase64 = imageUrl;
+    const currentPdfText = pdfText;
+    const currentPdfName = pdfName;
+    
     setInputValue('');
     setImageUrl('');
+    setPdfText('');
+    setPdfName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     
     const newMessages = [
       ...messages,
-      { role: 'user', content: userMessage, imageUrl: currentBase64 }
+      { role: 'user', content: userMessage, imageUrl: currentBase64, pdfName: currentPdfName }
     ];
     setMessages(newMessages);
     setIsLoading(true);
@@ -191,7 +223,11 @@ const AILearning = () => {
       let modelContent = '';
       setMessages(prev => [...prev, { role: 'model', content: '' }]);
 
-      // 任務 A：Payload 修改，將 Base64 字串與文字訊息發送給後端
+      // 任務 A：Payload 修改，將 Base64 或 PDF 字串與文字訊息發送給後端
+      let finalMessage = userMessage;
+      if (currentPdfText) {
+        finalMessage += `\n\n[附檔 PDF 內容]\n${currentPdfText}`;
+      }
       await fetchEventSource('http://localhost:5001/api/ai/tutor', {
         method: 'POST',
         headers: {
@@ -201,7 +237,7 @@ const AILearning = () => {
         body: JSON.stringify({
           sessionId: activeSessionId,
           history: messages.filter(m => !m.content.includes('你好！我是一位專屬商科')),
-          message: userMessage,
+          message: finalMessage,
           imageUrl: currentBase64
         }),
         onmessage(ev) {
@@ -302,15 +338,22 @@ const AILearning = () => {
                     style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', marginBottom: '8px', display: 'block' }} 
                   />
                 )}
+                {msg.pdfName && (
+                  <div style={{ padding: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', marginBottom: '8px', fontSize: '13px' }}>
+                    📄 附檔 PDF：{msg.pdfName}
+                  </div>
+                )}
                 {msg.role === 'user' ? (
                   <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
                 ) : (
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkMath]} 
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                  <div className={styles.markdownContent}>
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkMath]} 
+                      rehypePlugins={[rehypeKatex]}
+                    >
+                      {msg.content.replace(/\[TAG:.*?\]/g, '')}
+                    </ReactMarkdown>
+                  </div>
                 )}
               </div>
             </div>
@@ -336,7 +379,7 @@ const AILearning = () => {
             </div>
           )}
 
-          {/* 任務 A：圖片預覽區塊 */}
+          {/* 任務 A：圖片與PDF預覽區塊 */}
           {imageUrl && (
             <div className={styles.imagePreviewArea}>
               <img src={imageUrl} alt="附件預覽" className={styles.previewImg} />
@@ -352,11 +395,29 @@ const AILearning = () => {
               </button>
             </div>
           )}
+          {pdfName && (
+            <div className={styles.imagePreviewArea} style={{ alignItems: 'center' }}>
+              <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '24px' }}>📄</span>
+              </div>
+              <div>
+                <p>已上傳 PDF</p>
+                <p style={{ fontSize: '12px', color: '#64748b' }}>{pdfName}</p>
+              </div>
+              <button 
+                className={styles.removeImageBtn} 
+                onClick={() => { setPdfText(''); setPdfName(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                title="移除 PDF"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
 
           <div className={styles.inputWrapper}>
             <input 
               type="file" 
-              accept="image/*" 
+              accept="image/*, application/pdf" 
               style={{ display: 'none' }} 
               ref={fileInputRef} 
               onChange={handleFileChange} 
@@ -365,7 +426,7 @@ const AILearning = () => {
             <button 
               className={styles.attachBtn} 
               onClick={() => fileInputRef.current?.click()} 
-              title={isLimitReached ? "發問額度已用盡" : "上傳圖片 (Base64)"}
+              title={isLimitReached ? "發問額度已用盡" : "上傳圖片或PDF"}
               disabled={isLoading || isLimitReached}
             >
               <Paperclip size={20} />
@@ -381,8 +442,8 @@ const AILearning = () => {
             <button 
               className={styles.sendBtn} 
               onClick={handleSendMessage}
-              disabled={isLoading || (!inputValue.trim() && !imageUrl) || isLimitReached}
-              style={{ opacity: (isLoading || (!inputValue.trim() && !imageUrl) || isLimitReached) ? 0.5 : 1 }}
+              disabled={isLoading || (!inputValue.trim() && !imageUrl && !pdfText) || isLimitReached}
+              style={{ opacity: (isLoading || (!inputValue.trim() && !imageUrl && !pdfText) || isLimitReached) ? 0.5 : 1 }}
               title={isLimitReached ? "今日發問額度已用盡" : "發送訊息"}
             >
               <Send size={18} />
