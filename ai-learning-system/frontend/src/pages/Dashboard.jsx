@@ -5,6 +5,21 @@ import CalendarWidget from '../components/CalendarWidget';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
+const getTimeAgo = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (minutes < 60) return `${minutes || 1} 分鐘前`;
+  if (hours < 24) return `${hours} 小時前`;
+  if (days === 1) return `昨天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  return `${days} 天前`;
+};
+
 const getRelativeDateStr = (offsetDays) => {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
@@ -78,6 +93,7 @@ const Dashboard = () => {
     const saved = localStorage.getItem('ai_learning_events_v4');
     return saved ? JSON.parse(saved) : defaultEvents;
   });
+  const [recentResources, setRecentResources] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('ai_learning_events_v4', JSON.stringify(events));
@@ -113,7 +129,26 @@ const Dashboard = () => {
       setDateStr(dateFormatter.format(now));
     };
 
+    const fetchRecentExams = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/progress/exams', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            const sorted = data.data.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            setRecentResources(sorted.slice(0, 3));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch recent exams', err);
+      }
+    };
+
     updateTime();
+    fetchRecentExams();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -138,13 +173,28 @@ const Dashboard = () => {
             <TaskTimeline events={events} setEvents={setEvents} />
           </div>
 
-          <div className={styles.efficiencyCard}>
-            <h3 className={styles.efficiencyTitle}>今日學習效率</h3>
-            <div className={styles.efficiencyValue}>85%</div>
-            <div className={styles.progressBar}>
-              <div className={styles.progressFill}></div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>最近查閱資源</h2>
             </div>
-            <p className={styles.efficiencyDesc}>你已經超越了 92% 的同學。繼續保持這個節奏！</p>
+            <div className={styles.resourceList}>
+              {recentResources.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', padding: '10px 0' }}>目前沒有最近查閱的考古題資源</p>
+              ) : (
+                recentResources.map((resource) => (
+                  <div 
+                    key={resource._id} 
+                    className={styles.resourceItem} 
+                  >
+                    <FileText className={styles.resourceIcon} size={20} />
+                    <div className={styles.resourceInfo}>
+                      <h4>{resource.examTitle || '未命名考卷'}</h4>
+                      <p>{getTimeAgo(resource.updatedAt || resource.createdAt)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
@@ -156,75 +206,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className={styles.bottomGrid}>
-        {/* AI 學習建議 */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>AI 學習建議</h2>
-            <Lightbulb size={20} color="var(--color-primary)" />
-          </div>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>根據你最近的測驗表現</p>
-          <div className={styles.aiBox}>
-            <p>"你在『遞迴演算法』部分的理解略顯薄弱，建議今晚撥出 20 分鐘複習動態規劃的基礎概念。"</p>
-          </div>
-          <button className={styles.linkBtn}>查看強化練習 <ExternalLink size={14} /></button>
-        </div>
 
-        {/* 最近查閱資源 */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>最近查閱資源</h2>
-          </div>
-          <div className={styles.resourceList}>
-            <div className={styles.resourceItem}>
-              <FileText className={styles.resourceIcon} size={20} />
-              <div className={styles.resourceInfo}>
-                <h4>資料結構複習筆記.pdf</h4>
-                <p>2 小時前</p>
-              </div>
-            </div>
-            <div className={styles.resourceItem}>
-              <PlaySquare className={styles.resourceIcon} size={20} />
-              <div className={styles.resourceInfo}>
-                <h4>線性代數 - 第 4 講</h4>
-                <p>昨天 15:20</p>
-              </div>
-            </div>
-            <div className={styles.resourceItem}>
-              <FileCode className={styles.resourceIcon} size={20} />
-              <div className={styles.resourceInfo}>
-                <h4>Python 專案實作範例</h4>
-                <p>3 天前</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 學習社群 */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>學習社群</h2>
-          </div>
-          <div className={styles.avatarGroup}>
-            <div className={styles.avatars}>
-              <img src="https://i.pravatar.cc/100?img=1" alt="user" />
-              <img src="https://i.pravatar.cc/100?img=2" alt="user" />
-              <img src="https://i.pravatar.cc/100?img=3" alt="user" />
-            </div>
-            <span className={styles.moreAvatars}>+12</span>
-          </div>
-          
-          <div className={styles.eventBox}>
-            <span className={styles.eventBadge}>即將開始的研討</span>
-            <h4 className={styles.eventTitle}>計算機概論考前衝刺</h4>
-            <p className={styles.eventMeta}>今天 20:00 • 3 人已加入</p>
-          </div>
-          
-          <button className={styles.joinBtn}>
-            <Bot size={20} />
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

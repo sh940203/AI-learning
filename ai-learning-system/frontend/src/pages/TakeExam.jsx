@@ -329,11 +329,9 @@ const TakeExam = () => {
     }
   };
 
-  // 暫存離開並返回題庫
-  const handleSaveAndExit = async () => {
-    setLoading(true);
-    await handleSaveProgress(false);
-    navigate('/tests');
+  // 離開並交卷 (原為暫存離開)
+  const handleExitAndSubmit = () => {
+    checkUnansweredAndOpenDialog();
   };
 
   if (loading && !examData) {
@@ -352,10 +350,6 @@ const TakeExam = () => {
       {/* 沉浸式頂部控制列 */}
       <header className={styles.examHeader}>
         <div className={styles.headerLeft}>
-          <button className={styles.exitBtn} onClick={handleSaveAndExit}>
-            <ArrowLeft size={16} /> 暫存離開
-          </button>
-          <span className={styles.divider}>|</span>
           <h1 className={styles.examTitle}>{examData?.title}</h1>
         </div>
 
