@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './AdminLogs.module.css'; // Reuse styles from AdminLogs or create new ones
+import styles from './AnalyticsDashboard.module.css';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Loader2 } from 'lucide-react';
 

@@ -219,9 +219,9 @@ const AILearning = () => {
     setIsLoading(true);
 
     try {
-      setIsLoading(false);
+      const ctrl = new AbortController();
       let modelContent = '';
-      setMessages(prev => [...prev, { role: 'model', content: '' }]);
+      let isFirstChunk = true;
 
       // 任務 A：Payload 修改，將 Base64 或 PDF 字串與文字訊息發送給後端
       let finalMessage = userMessage;
@@ -240,9 +240,18 @@ const AILearning = () => {
           message: finalMessage,
           imageUrl: currentBase64
         }),
+        signal: ctrl.signal,
         onmessage(ev) {
           try {
             const data = JSON.parse(ev.data);
+            
+            // 收到第一包資料（不論是 chunk、error 還是 done）時，才關閉 isLoading 並加入預設泡泡
+            if (isFirstChunk && (data.type === 'chunk' || data.type === 'error' || data.type === 'done')) {
+              setIsLoading(false);
+              setMessages(prev => [...prev, { role: 'model', content: '' }]);
+              isFirstChunk = false;
+            }
+
             if (data.type === 'chunk') {
               modelContent += data.text;
               setMessages(prev => {
@@ -258,26 +267,43 @@ const AILearning = () => {
               // 任務 B：每次成功發送/回應後更新 localStorage 發問紀錄 [日期]: [已發問次數]
               const newCount = incrementTodayQuestionCount();
               setUsedCount(newCount);
+              
+              ctrl.abort(); // 傳輸完成，主動關閉連線，避免 fetchEventSource 自動重試
             } else if (data.type === 'error') {
                setMessages(prev => {
                 const newMsg = [...prev];
                 newMsg[newMsg.length - 1].content = data.reply;
                 return newMsg;
               });
+              ctrl.abort();
             }
           } catch (e) {
             // Ignore parse errors
           }
         },
         onerror(err) {
+          if (err.name === 'AbortError') return; // 主動中斷時不拋出錯誤
+          
+          setIsLoading(false);
           console.error("SSE Connection Error", err);
           throw err;
         }
       });
     } catch (error) {
+      if (error.name === 'AbortError') return; // 主動中斷時不拋出錯誤
+      
       console.error('Error sending message:', error);
       setIsLoading(false);
-      setMessages([...newMessages, { role: 'model', content: '網路錯誤，無法連接到家教系統。' }]);
+      setMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg && lastMsg.role === 'model') {
+          const newMsg = [...prev];
+          newMsg[newMsg.length - 1].content += '\n\n[網路錯誤，連線中斷]';
+          return newMsg;
+        } else {
+          return [...prev, { role: 'model', content: '網路錯誤，無法連接到家教系統。' }];
+        }
+      });
     }
   };
 

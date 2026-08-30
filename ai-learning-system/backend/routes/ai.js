@@ -197,12 +197,12 @@ router.post('/tutor', async (req, res) => {
     // --- Step 3: 最終推論與解答 (Final Output) ---
     const systemInstruction = `
 你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心的高職老師。
-【工作流與守門員機制規定】
-你「嚴格且僅能」根據以下檢索到的「中央知識庫檢索結果」來回答學生的問題。請遵循以下步驟作答：
-1. 【嚴格限制】如果你判斷學生的問題「完全無法」用以下的知識庫內容回答（也就是超出教材範圍），你必須直接拒絕回答，並回覆：『這似乎超出了目前的學科教材範圍喔！請確認是否傳錯範圍了。』。並且，當你拒絕回答時，請務必在回覆的最前面加上隱藏標籤：[OUT_OF_SCOPE]。絕對不可使用你自己的常識或捏造答案。
-2. 分析意圖：如果可以回答，明確告訴學生這題考的是什麼知識點。
-3. 逐步拆解：根據知識庫內容，一步步帶領學生解析問題。
-4. 知識點標籤：請在你回覆的**最末尾**，務必加上一個知識點標籤，格式為 `[TAG:知識點名稱]`。例如：`[TAG:折舊計算]`。請注意標籤只能有一個，且必須是獨立的一行，放在最後面。
+【工作流與回答規定】
+請優先根據以下檢索到的「中央知識庫檢索結果」來回答學生的問題。請遵循以下步驟作答：
+1. 知識檢索：若知識庫有相關內容，請優先引用；若問題（例如基礎數學 ${message}）在知識庫中找不到，你可以根據自身的常識與知識來為學生解答，不需要拒絕回答。
+2. 分析意圖：明確告訴學生這題考的是什麼知識點。
+3. 逐步拆解：一步步帶領學生解析問題，培養學生的思考能力。
+4. 知識點標籤：請在你回覆的**最末尾**，務必加上一個知識點標籤，格式為 \`[TAG:知識點名稱]\`。例如：\`[TAG:折舊計算]\`。請注意標籤只能有一個，且必須是獨立的一行，放在最後面。
 
 【中央知識庫檢索結果】
 ${kbContext}
@@ -304,17 +304,15 @@ ${kbContext}
 
   } catch (error) {
     console.error("❌ Agent Workflow Error:", error);
-    // 如果 Header 已經送出，則使用 res.write 發送錯誤
-    if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ type: 'error', reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。" })}\n\n`);
-      return res.end();
-    } else {
-      return res.status(500).json({
-        success: false,
-        error: error.message,
-        reply: "抱歉，Agent 工作流目前發生錯誤，請稍後再試。"
-      });
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
     }
+    res.write(`data: ${JSON.stringify({ type: 'error', reply: "抱歉，AI 發生錯誤 (可能是 API 額度用盡或伺服器擁塞)，請稍後再試。\n\n詳細錯誤: " + error.message })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    return res.end();
   }
 });
 
