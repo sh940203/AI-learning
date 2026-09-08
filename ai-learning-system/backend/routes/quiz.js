@@ -64,4 +64,84 @@ router.post('/generate', auth, async (req, res) => {
   }
 });
 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const MistakeRecord = require('../models/MistakeRecord');
+
+// Setup Gemini API client
+let genAI = null;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+}
+
+// ============================================================
+// @route   POST /api/quiz/generate-dynamic
+// @desc    透過 Gemini 動態生成使用者的弱點觀念測驗
+// @body    { intensity: 'quick' | 'standard' | 'high' }
+// @access  Private
+// ============================================================
+router.post('/generate-dynamic', auth, async (req, res) => {
+  try {
+    const { intensity = 'quick' } = req.body;
+    let count = 10;
+    if (intensity === 'standard') count = 30;
+    if (intensity === 'high') count = 50;
+    
+    // 取出最弱的 3 個觀念
+    const weakConcepts = await MistakeRecord.find({ userId: req.user.id })
+      .sort({ wrongCount: -1 })
+      .limit(3);
+      
+    let conceptTags = weakConcepts.map(c => c.conceptTag);
+    if (conceptTags.length === 0) {
+      conceptTags = ['基礎綜合測驗']; // fallback if no mistakes
+    }
+    
+    if (!genAI) {
+      return res.status(500).json({ success: false, message: 'Server missing GEMINI_API_KEY' });
+    }
+    
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const prompt = `
+你是一位專業的考題生成專家。請針對以下薄弱觀念生成 ${count} 題單選題：
+薄弱觀念: ${conceptTags.join(', ')}
+
+請嚴格回傳一個 JSON 陣列，每個元素代表一題，格式如下，不要包含 markdown 標籤：
+[
+  {
+    "type": "single",
+    "html": "題目內容...",
+    "options": [
+      { "id": "A", "text": "選項 A", "isCorrect": true },
+      { "id": "B", "text": "選項 B", "isCorrect": false },
+      { "id": "C", "text": "選項 C", "isCorrect": false },
+      { "id": "D", "text": "選項 D", "isCorrect": false }
+    ],
+    "explanation": "詳解..."
+  }
+]
+`;
+    
+    const result = await model.generateContent(prompt);
+    let text = result.response.text().trim();
+    if (text.startsWith('```json')) text = text.replace(/```json|```/g, '').trim();
+    if (text.startsWith('```')) text = text.replace(/```/g, '').trim();
+    
+    const questions = JSON.parse(text);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        questions,
+        totalGenerated: questions.length,
+        concepts: conceptTags,
+        intensity
+      }
+    });
+    
+  } catch (error) {
+    console.error('動態生成測驗失敗:', error);
+    res.status(500).json({ success: false, message: '動態生成測驗失敗', error: error.message });
+  }
+});
+
 module.exports = router;

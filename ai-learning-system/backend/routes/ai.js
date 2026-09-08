@@ -77,6 +77,7 @@ const KnowledgeBase = require('../models/KnowledgeBase');
 const AIChatSession = require('../models/AIChatSession');
 const UnansweredLog = require('../models/UnansweredLog');
 const QuestionAnalytics = require('../models/QuestionAnalytics');
+const Question = require('../models/Question');
 const path = require('path');
 const fs = require('fs');
 
@@ -172,21 +173,43 @@ router.post('/tutor', async (req, res) => {
         const embedResult = await embedModel.embedContent(message);
         const queryVector = embedResult.embedding.values;
 
-        // 使用 MongoDB Atlas Vector Search 進行相似度比對
-        const kbs = await KnowledgeBase.aggregate([
-          {
-            $vectorSearch: {
-              index: "vector_index", // 注意：需在 Atlas 後台建立名為 vector_index 的 Search Index
-              path: "embedding",
-              queryVector: queryVector,
-              numCandidates: 10,
-              limit: 3
+        // 使用 MongoDB Atlas Vector Search 進行相似度比對 (教材 + 題庫)
+        const [kbs, questions] = await Promise.all([
+          KnowledgeBase.aggregate([
+            {
+              $vectorSearch: {
+                index: "vector_index", // 注意：需在 Atlas 後台建立名為 vector_index 的 Search Index
+                path: "embedding",
+                queryVector: queryVector,
+                numCandidates: 10,
+                limit: 3
+              }
             }
-          }
+          ]).catch(err => { console.warn("KnowledgeBase search failed:", err.message); return []; }),
+          
+          Question.aggregate([
+            {
+              $vectorSearch: {
+                index: "vector_index", // 需在 Question 建立 vector_index
+                path: "embedding",
+                queryVector: queryVector,
+                numCandidates: 10,
+                limit: 3
+              }
+            }
+          ]).catch(err => { console.warn("Question search failed:", err.message); return []; })
         ]);
 
-        if (kbs.length > 0) {
-          kbContext = kbs.map(k => `【科目】${k.subject} 【章節】${k.chapter}\n${k.content}`).join('\n\n---\n\n');
+        let kbTexts = [];
+        if (kbs && kbs.length > 0) {
+          kbTexts.push(kbs.map(k => `【教材 - ${k.subject || ''} ${k.chapter || ''}】\n${k.content}`).join('\n\n'));
+        }
+        if (questions && questions.length > 0) {
+          kbTexts.push(questions.map(q => `【相關考題 - ${q.subject || ''}】\n${q.html}\n詳解: ${q.explanation || '無'}`).join('\n\n'));
+        }
+
+        if (kbTexts.length > 0) {
+          kbContext = kbTexts.join('\n\n---\n\n');
         }
       } catch (searchError) {
         console.error("❌ Vector Search 失敗 (確認是否已在 Atlas 建立 vector_index):", searchError);

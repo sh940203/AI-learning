@@ -76,10 +76,6 @@ const AdminLayout = () => {
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <h2 className={styles.pageTitle}>後台管理中心</h2>
-            <div className={styles.searchBar}>
-              <Search size={18} color="var(--color-text-muted)" />
-              <input type="text" placeholder="搜尋數據或功能..." />
-            </div>
           </div>
           <div className={styles.headerActions}>
             <button className={styles.iconBtn}><Bell size={20} /></button>
