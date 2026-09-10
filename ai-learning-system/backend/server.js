@@ -93,6 +93,6 @@ app.use((err, req, res, next) => {
 });
 
 // 啟動伺服器
-app.listen(PORT, () => {
-  console.log(`🚀 伺服器運行於 http://localhost:${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`🚀 伺服器運行於 http://127.0.0.1:${PORT}`);
 });

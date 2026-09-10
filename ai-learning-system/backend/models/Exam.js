@@ -34,7 +34,9 @@ const examSchema = new mongoose.Schema({
   folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
 
   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  isGenerated: { type: Boolean, default: false },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Exam', examSchema);

@@ -96,6 +96,7 @@ router.post('/update', auth, async (req, res) => {
           if (exam) {
             let computedScore = 0;
             for (const q of exam.questions) {
+              if (!q || !q._id) continue;
               const studentAns = answers.find(a => a.questionId === q._id.toString());
               if (!studentAns) continue;
 
@@ -174,8 +175,8 @@ router.post('/seed', auth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 取得目前所有已發布考卷
-    const exams = await Exam.find({ status: 'published', isActive: true });
+    // 取得目前所有已發布考卷並 populate 題目
+    const exams = await Exam.find({ status: 'published', isActive: true }).populate('questions');
     
     if (exams.length === 0) {
       return res.status(400).json({ success: false, message: '資料庫中目前沒有已發布的考卷，請先去後台發布考卷！' });
@@ -186,24 +187,83 @@ router.post('/seed', auth, async (req, res) => {
 
     const seedData = [];
 
+    // 輔助函數：為一張考卷隨機產生作答 (約 70-80% 正確率)
+    const generateAnswers = (exam) => {
+      const answers = [];
+      let score = 0;
+      
+      for (const q of exam.questions || []) {
+        const isWrong = Math.random() < 0.3; // 30% 機率答錯
+        
+        let selectedOptions = [];
+        let answerText = '';
+        
+        if (q.type === 'single' || q.type === 'tf') {
+          const correctOption = q.options.find(o => o.isCorrect);
+          if (correctOption) {
+            if (!isWrong) {
+              selectedOptions = [correctOption.id];
+              score += q.score || exam.defaultScore || 2;
+            } else {
+              const wrongOptions = q.options.filter(o => !o.isCorrect);
+              if (wrongOptions.length > 0) {
+                selectedOptions = [wrongOptions[Math.floor(Math.random() * wrongOptions.length)].id];
+              }
+            }
+          }
+        } else if (q.type === 'multiple') {
+          const correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
+          if (!isWrong) {
+            selectedOptions = correctIds;
+            score += q.score || exam.defaultScore || 2;
+          } else {
+            // 隨機選一半的選項作為錯答
+            selectedOptions = q.options.slice(0, Math.max(1, q.options.length - 1)).map(o => o.id);
+          }
+        } else if (q.type === 'fill') {
+          const correctOption = q.options?.find(o => o.isCorrect);
+          const correctText = correctOption ? correctOption.text : (q.explanation || '正確答案');
+          if (!isWrong) {
+            answerText = correctText;
+            score += q.score || exam.defaultScore || 2;
+          } else {
+            answerText = '錯誤的文字答案';
+          }
+        }
+        
+        answers.push({
+          questionId: q._id.toString(),
+          selectedOptions,
+          answerText,
+          subQuestionAnswers: []
+        });
+      }
+      
+      return { answers, score };
+    };
+
     // 為前幾張考卷產生一些進度
     if (exams[0]) {
+      const { answers, score } = generateAnswers(exams[0]);
       seedData.push({
         userId,
         examId: exams[0]._id,
         status: 'completed',
         progressRate: 100,
-        score: 92,
+        score: score,
+        answers: answers,
         completedAt: new Date()
       });
     }
     if (exams[1]) {
+      const { answers, score } = generateAnswers(exams[1]);
       seedData.push({
         userId,
         examId: exams[1]._id,
         status: 'completed',
         progressRate: 100,
-        score: 88,
+        score: score,
+        answers: answers,
         completedAt: new Date()
       });
     }
@@ -213,7 +273,8 @@ router.post('/seed', auth, async (req, res) => {
         examId: exams[2]._id,
         status: 'in_progress',
         progressRate: 45,
-        score: 0
+        score: 0,
+        answers: [] // 進行中可能只有部分答案，此處簡化
       });
     }
 

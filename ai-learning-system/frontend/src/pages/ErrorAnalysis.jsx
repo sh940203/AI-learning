@@ -499,7 +499,10 @@ const ErrorAnalysis = () => {
                     <p className={styles.quizDesc}>
                       涵蓋知識點：{quizResult.tags?.join('、') || '相關弱項'}
                     </p>
-                    <button className={styles.startQuizBtn}>
+                    <button 
+                      className={styles.startQuizBtn}
+                      onClick={() => navigate(`/tests/take/${quizResult.examId}`)}
+                    >
                       <ArrowRight size={14} /> 開始強化練習
                     </button>
                   </>

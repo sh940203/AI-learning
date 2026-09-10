@@ -35,6 +35,7 @@ router.get('/wrong-questions', auth, async (req, res) => {
       if (!exam) continue;
 
       for (const q of exam.questions) {
+        if (!q || !q._id) continue;
         const studentAns = (progress.answers || []).find(
           a => a.questionId === q._id.toString()
         );
@@ -122,6 +123,7 @@ router.get('/mastery', auth, async (req, res) => {
       if (!exam) continue;
 
       for (const q of exam.questions) {
+        if (!q || !q._id) continue;
         // 科目過濾 (全局模式下支援)
         const qSubject = q.subject || exam.subject || '未分類';
         if (subject && qSubject !== subject) continue;
@@ -230,26 +232,23 @@ ${q?.explanation || '無'}
       });
     }
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
-        })
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 512,
+        responseMimeType: "application/json",
       }
-    );
+    });
 
-    if (!geminiRes.ok) {
-      throw new Error(`Gemini API 呼叫失敗: ${geminiRes.status}`);
-    }
+    const response = await result.response;
+    const rawText = response.text() || '{}';
 
-    const geminiData = await geminiRes.json();
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-
-    // 清理並解析 JSON
+    // 清理並解析 JSON (雖然設了 responseMimeType，但有時仍會有 ```json 包裝)
     const cleanedText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const analysisResult = JSON.parse(cleanedText);
 
@@ -260,10 +259,10 @@ ${q?.explanation || '無'}
     res.status(200).json({
       success: true,
       data: {
-        misconception: '混淆了相關概念的適用範圍與邊界條件',
-        blindspot: '忽略了題目中的關鍵限制詞或情境前提',
-        suggestion: '建議回頭整理該觀念的核心定義與常考情境',
-        hint: '仔細再讀一次題目，注意關鍵的限定詞！'
+        misconception: '系統分析時發生意外錯誤',
+        blindspot: '可能原因：API Key無效、額度不足、或題目含有敏感字眼',
+        suggestion: '請確認伺服器日誌或聯絡開發人員',
+        hint: `錯誤訊息: ${error.message}`
       }
     });
   }

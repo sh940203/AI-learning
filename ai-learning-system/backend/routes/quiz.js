@@ -30,7 +30,7 @@ router.post('/generate', auth, async (req, res) => {
     }
 
     // 2. 從題庫中隨機取樣
-    const questions = await Question.aggregate([
+    let questions = await Question.aggregate([
       { $match: filter },
       { $sample: { size: parseInt(count) } },
       {
@@ -42,6 +42,24 @@ router.post('/generate', auth, async (req, res) => {
       }
     ]);
 
+    // 3. Fallback: 如果依據標籤找不到題目，改為隨機抽取不限標籤的題目（避免使用者覺得壞掉）
+    if (questions.length === 0) {
+      const fallbackFilter = { status: 'saved', isActive: true };
+      // 移除 excludeExamId，確保如果資料庫只有一張考卷，至少還能撈出裡面的題目
+      
+      questions = await Question.aggregate([
+        { $match: fallbackFilter },
+        { $sample: { size: parseInt(count) } },
+        {
+          $project: {
+            _id: 1, type: 1, html: 1, options: 1,
+            subQuestions: 1, explanation: 1, tags: 1,
+            category: 1, subject: 1, score: 1, difficulty: 1
+          }
+        }
+      ]);
+    }
+
     if (questions.length === 0) {
       return res.status(200).json({
         success: true,
@@ -49,10 +67,26 @@ router.post('/generate', auth, async (req, res) => {
       });
     }
 
+    const Exam = require('../models/Exam');
+    
+    // 建立新考卷 (設定為個人生成的微測驗)
+    const newExam = new Exam({
+      title: `專屬強化微測驗 - ${new Date().toLocaleDateString('zh-TW')}`,
+      status: 'published',
+      isActive: true,
+      isGenerated: true,
+      userId: req.user.id,
+      displayMode: 'all',
+      timeLimit: count === 10 ? 15 : count === 30 ? 45 : 90,
+      questions: questions.map(q => q._id)
+    });
+    const savedExam = await newExam.save();
+
     res.status(200).json({
       success: true,
       data: {
         questions,
+        examId: savedExam._id,
         totalFound: questions.length,
         requestedCount: count,
         tags

@@ -54,8 +54,8 @@ router.get('/published', async (req, res) => {
   try {
     const { examCategory, search } = req.query;
     
-    // 預設篩選已發布且啟用的考卷
-    const query = { status: 'published', isActive: true };
+    // 預設篩選已發布且啟用的考卷，並排除系統為個人生成的微測驗
+    const query = { status: 'published', isActive: true, isGenerated: { $ne: true } };
     
     if (examCategory && examCategory !== '全部') {
       query.examCategory = examCategory;
