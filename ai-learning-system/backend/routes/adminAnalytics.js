@@ -43,40 +43,72 @@ const SystemMetric = require('../models/SystemMetric');
 // @desc    Get system performance metrics
 router.get('/performance', async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    let metric = await SystemMetric.findOne({ date: today });
+    const { date, timeframe = 'hour' } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
     
-    if (!metric) {
-      metric = {
-        apiCalls: 0,
-        estimatedTokens: 0,
-        hourlyApiCalls: Array(24).fill(0)
-      };
-    }
-    
-    // Format data for chart
     let chartData = [];
-    // Just send a 10 element array of values to simulate recent hours
-    const currentHour = new Date().getHours();
-    for (let i = 0; i < 10; i++) {
-      let hourIndex = currentHour - 9 + i;
-      if (hourIndex < 0) {
-        chartData.push(0); // For simplicity, 0 if crossing day boundary
+    let tokenUsage = 0;
+    let apiCalls = 0;
+    
+    if (timeframe === 'hour') {
+      let metric = await SystemMetric.findOne({ date: targetDate });
+      if (!metric) {
+        chartData = Array(24).fill(0);
       } else {
-        // Calculate height percentage relative to a max for the frontend bar chart
-        // Let's cap the visual max at 100 or scale it
-        let val = metric.hourlyApiCalls[hourIndex];
-        // We just pass raw numbers or simulated percentages for the frontend
-        // Frontend expects 0-100 values since it renders height as %
-        chartData.push(Math.min(val * 10, 100)); 
+        tokenUsage = metric.estimatedTokens;
+        apiCalls = metric.apiCalls;
+        chartData = metric.hourlyTokens && metric.hourlyTokens.length === 24 
+          ? metric.hourlyTokens 
+          : Array(24).fill(0);
+      }
+    } else if (timeframe === 'day') {
+      // Get last 7 days
+      const d = new Date(targetDate);
+      for (let i = 6; i >= 0; i--) {
+        const checkDate = new Date(d);
+        checkDate.setDate(d.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        const metric = await SystemMetric.findOne({ date: dateStr });
+        chartData.push(metric ? metric.estimatedTokens : 0);
+        if (i === 0 && metric) {
+          tokenUsage = metric.estimatedTokens;
+          apiCalls = metric.apiCalls;
+        }
+      }
+    } else if (timeframe === 'week') {
+      // Get last 4 weeks
+      const d = new Date(targetDate);
+      for (let w = 3; w >= 0; w--) {
+        const endD = new Date(d);
+        endD.setDate(d.getDate() - (w * 7));
+        const startD = new Date(endD);
+        startD.setDate(endD.getDate() - 6);
+        
+        let weekTokens = 0;
+        // Query metrics between startD and endD
+        const metrics = await SystemMetric.find({
+          date: { 
+            $gte: startD.toISOString().split('T')[0], 
+            $lte: endD.toISOString().split('T')[0] 
+          }
+        });
+        
+        metrics.forEach(m => weekTokens += m.estimatedTokens);
+        chartData.push(weekTokens);
+      }
+      
+      let currentMetric = await SystemMetric.findOne({ date: targetDate });
+      if (currentMetric) {
+        tokenUsage = currentMetric.estimatedTokens;
+        apiCalls = currentMetric.apiCalls;
       }
     }
 
     res.json({
       success: true,
       data: {
-        tokenUsage: metric.estimatedTokens,
-        apiCalls: metric.apiCalls,
+        tokenUsage,
+        apiCalls,
         health: '99.98%',
         tokenUsageChange: '+0%',
         chartData

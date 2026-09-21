@@ -21,6 +21,10 @@ const systemMetricSchema = new mongoose.Schema({
   hourlyApiCalls: {
     type: [Number], // array of 24 integers representing each hour
     default: Array(24).fill(0)
+  },
+  hourlyTokens: {
+    type: [Number], // array of 24 integers representing tokens used each hour
+    default: Array(24).fill(0)
   }
 }, { timestamps: true });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { logApiUsage } = require('../services/metricService');
 
 // Setup Gemini API client if API key is provided
 let genAI = null;
@@ -54,15 +55,20 @@ router.post('/suggest', async (req, res) => {
       cleanText = cleanText.trim();
       
       const suggestionsArray = JSON.parse(cleanText);
+      const tokens = result.response.usageMetadata?.totalTokenCount || (prompt.length + text.length) * 1.5;
+      logApiUsage(tokens, false);
       return res.json({ success: true, isMock: false, guide: suggestionsArray });
     } catch (parseError) {
       console.warn("⚠️ Failed to parse Gemini response as JSON. Returning split text instead.", parseError);
       const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0).slice(0, 3);
+      const tokens = result.response.usageMetadata?.totalTokenCount || (prompt.length + text.length) * 1.5;
+      logApiUsage(tokens, false);
       return res.json({ success: true, isMock: false, guide: lines });
     }
 
   } catch (error) {
     console.error("❌ Gemini API Error:", error);
+    logApiUsage(0, true);
     return res.json({
       success: true,
       isMock: true,
@@ -269,6 +275,11 @@ ${kbContext}
       }
     }
 
+    // Attempt to log API usage for the stream
+    const response = await resultStream.response;
+    const tokens = response?.usageMetadata?.totalTokenCount || (message.length + fullResponseText.length) * 1.5;
+    logApiUsage(tokens, false);
+
     // --- 解析標籤 ---
     const tagMatch = fullResponseText.match(/\[TAG:(.*?)\]/);
     if (tagMatch && !isOutOfScope) {
@@ -327,6 +338,7 @@ ${kbContext}
 
   } catch (error) {
     console.error("❌ Agent Workflow Error:", error);
+    logApiUsage(0, true);
     if (!res.headersSent) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');

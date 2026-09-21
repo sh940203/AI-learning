@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Question = require('../models/Question');
 const auth = require('../middleware/authMiddleware');
+const { logApiUsage } = require('../services/metricService');
 
 // ============================================================
 // @route   POST /api/quiz/generate
@@ -162,6 +163,9 @@ router.post('/generate-dynamic', auth, async (req, res) => {
     
     const questions = JSON.parse(text);
 
+    const tokens = result.response.usageMetadata?.totalTokenCount || (prompt.length + text.length) * 1.5;
+    logApiUsage(tokens, false);
+
     res.status(200).json({
       success: true,
       data: {
@@ -174,6 +178,7 @@ router.post('/generate-dynamic', auth, async (req, res) => {
     
   } catch (error) {
     console.error('動態生成測驗失敗:', error);
+    logApiUsage(0, true);
     res.status(500).json({ success: false, message: '動態生成測驗失敗', error: error.message });
   }
 });
