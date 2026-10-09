@@ -20,6 +20,7 @@ import Announcements from './pages/admin/Announcements';
 import KnowledgeBaseManager from './pages/admin/KnowledgeBaseManager';
 import UnansweredLogs from './pages/admin/UnansweredLogs';
 import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
+import FeedbackManager from './pages/admin/FeedbackManager';
 import './index.css';
 
 const DummyPage = ({ title }) => (
@@ -63,6 +64,7 @@ function App() {
             <Route path="announcements" element={<Announcements />} />
             <Route path="knowledge" element={<KnowledgeBaseManager />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
+            <Route path="feedbacks" element={<FeedbackManager />} />
             <Route path="logs/unanswered" element={<UnansweredLogs />} />
             <Route path="settings" element={<DummyPage title="系統設定" />} />
           </Route>

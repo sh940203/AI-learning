@@ -14,6 +14,7 @@ const splitTitle = (title, defaultLabel) => {
       };
     }
   }
+  
   // 如果沒有輸入冒號，直接將標題設定為主標頭，並將分類名稱顯示在複選框旁邊111111
   return { header: title, title: defaultLabel };
 };
