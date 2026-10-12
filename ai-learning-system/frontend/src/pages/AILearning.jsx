@@ -5,6 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import 'katex/dist/katex.min.css';
+import FeedbackRatingBar from '../components/FeedbackRatingBar';
 import styles from './AILearning.module.css';
 
 const DAILY_LIMIT = 5;
@@ -379,6 +380,7 @@ const AILearning = () => {
                     >
                       {msg.content.replace(/\[TAG:.*?\]/g, '')}
                     </ReactMarkdown>
+                    <FeedbackRatingBar question={{ title: msg.content.slice(0, 60) }} />
                   </div>
                 )}
               </div>

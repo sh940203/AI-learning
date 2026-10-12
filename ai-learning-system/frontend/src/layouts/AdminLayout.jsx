@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen, AlertCircle, BarChart2 } from 'lucide-react';
+import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen, AlertCircle, BarChart2, Sparkles, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './AdminLayout.module.css';
 
@@ -38,8 +38,14 @@ const AdminLayout = () => {
           <NavLink to="/admin/questions" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫管理">
             <Database size={20} /> <span className={styles.navItemText}>題庫管理</span>
           </NavLink>
-          <NavLink to="/admin/knowledge" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="中央知識庫管理">
-            <BookOpen size={20} /> <span className={styles.navItemText}>中央知識庫</span>
+          <NavLink to="/admin/knowledge" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫資料庫檔管理">
+            <BookOpen size={20} /> <span className={styles.navItemText}>題庫資料庫檔管理</span>
+          </NavLink>
+          <NavLink to="/admin/ai-test" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="AI 出題測試台">
+            <Sparkles size={20} /> <span className={styles.navItemText}>AI 出題測試台</span>
+          </NavLink>
+          <NavLink to="/admin/feedback" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題目報錯與反饋">
+            <MessageSquare size={20} /> <span className={styles.navItemText}>題目報錯與反饋</span>
           </NavLink>
           <NavLink to="/admin/logs/unanswered" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="超綱問題追蹤">
             <AlertCircle size={20} /> <span className={styles.navItemText}>超綱問題追蹤</span>
