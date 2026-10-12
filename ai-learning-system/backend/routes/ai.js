@@ -358,7 +358,8 @@ ${kbContext}
       await session.save();
     } else {
       // Create new session
-      const autoTitle = message.length > 15 ? message.substring(0, 15) + '...' : message;
+      const cleanMsg = message.replace(/\[附檔 PDF 內容\][\s\S]*/g, '').replace(/\s+/g, ' ').trim();
+      const autoTitle = cleanMsg.length > 50 ? cleanMsg.substring(0, 50) + '...' : (cleanMsg || '新對話');
       session = new AIChatSession({
         deviceId,
         title: autoTitle,

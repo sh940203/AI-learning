@@ -9,7 +9,8 @@
 
 /* Sidebar for History */
 .sidebar {
-  width: 260px;
+  width: 285px;
+  flex-shrink: 0;
   background-color: var(--color-bg-secondary);
   border-right: 1px solid var(--color-border);
   display: flex;
@@ -58,6 +59,7 @@
   justify-content: space-between;
   border-radius: 8px;
   transition: background-color 0.15s;
+  min-height: 42px;
 }
 
 .historyItemWrap:hover {
@@ -71,7 +73,7 @@
 .historyItem {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -83,6 +85,12 @@
   font-size: 13.5px;
   min-width: 0;
   transition: color 0.15s;
+  line-height: 1.45;
+}
+
+.historyIcon {
+  flex-shrink: 0;
+  margin-top: 3px;
 }
 
 .historyItem.active {
@@ -93,8 +101,13 @@
 .sessionTitle {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  line-height: 1.45;
   flex: 1;
+  white-space: normal;
 }
 
 .sessionActions {
@@ -103,10 +116,13 @@
   gap: 2px;
   position: absolute;
   right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   padding: 2px 4px;
   border-radius: 6px;
   background-color: var(--color-bg-secondary);
   box-shadow: -8px 0 10px var(--color-bg-secondary);
+  z-index: 2;
 }
 
 .iconBtn {
@@ -142,7 +158,7 @@
 
 .renameInput {
   flex: 1;
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 13px;
   border-radius: 6px;
   border: 1px solid var(--color-primary);
@@ -150,6 +166,7 @@
   color: var(--color-text-main);
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  min-width: 0;
 }
 
 /* Main Chat Area */

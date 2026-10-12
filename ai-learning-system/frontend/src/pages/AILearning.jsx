@@ -168,7 +168,10 @@ const AILearning = () => {
     e.stopPropagation();
     setEditingSessionId(s._id);
     setEditingTitle(s.title);
-    setTimeout(() => renamInputRef.current?.focus(), 50);
+    setTimeout(() => {
+      renamInputRef.current?.focus();
+      renamInputRef.current?.select();
+    }, 50);
   };
 
   const commitRename = async (e) => {
@@ -416,6 +419,8 @@ const AILearning = () => {
                       if (e.key === 'Escape') setEditingSessionId(null);
                     }}
                     onBlur={commitRename}
+                    placeholder="輸入對話標題..."
+                    title={editingTitle}
                   />
                   <button className={styles.iconBtn} onClick={commitRename} title="確認">
                     <Check size={14} />
@@ -426,9 +431,10 @@ const AILearning = () => {
                 <button
                   className={`${styles.historyItem} ${activeSessionId === s._id ? styles.active : ''}`}
                   onClick={() => loadSession(s._id)}
+                  title={s.title}
                 >
-                  <MessageSquare size={14} style={{ flexShrink: 0 }} />
-                  <span className={styles.sessionTitle}>{s.title}</span>
+                  <MessageSquare size={14} className={styles.historyIcon} />
+                  <span className={styles.sessionTitle} title={s.title}>{s.title}</span>
                 </button>
               )}
 
