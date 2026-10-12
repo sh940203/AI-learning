@@ -330,6 +330,15 @@
   font-weight: 600;
 }
 
+.reportBtn {
+  color: #ef4444 !important;
+}
+
+.reportBtn:hover {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
 .qTextContainer {
   margin-bottom: var(--spacing-lg);
   line-height: 1.6;

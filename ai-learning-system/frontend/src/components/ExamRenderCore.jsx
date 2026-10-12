@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Bookmark, Volume2, HelpCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Bookmark, Volume2, HelpCircle, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import styles from './ExamRenderCore.module.css';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -37,6 +37,7 @@ const ExamRenderCore = ({
   onAnswerSelect = () => {},
   markedQuestions = [],
   onToggleMark = () => {},
+  onReportError = () => {},
   isPreview = false,
   deviceType = 'desktop' // 'phone', 'tablet', 'desktop'
 }) => {
@@ -304,17 +305,31 @@ const ExamRenderCore = ({
                         <span className={styles.qScore}>{q.score || 2} 分</span>
                       </div>
                       
-                      {!isPreview && (
-                        <button 
-                          className={`${styles.markBtn} ${isMarked ? styles.marked : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleMark(q._id);
-                          }}
-                        >
-                          <Bookmark size={14} /> 標記待查
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {!isPreview && (
+                          <button 
+                            className={`${styles.markBtn} ${styles.reportBtn}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReportError(q._id);
+                            }}
+                            title="題目報錯"
+                          >
+                            <AlertCircle size={14} /> 報錯
+                          </button>
+                        )}
+                        {!isPreview && (
+                          <button 
+                            className={`${styles.markBtn} ${isMarked ? styles.marked : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleMark(q._id);
+                            }}
+                          >
+                            <Bookmark size={14} /> 標記待查
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className={styles.qTextContainer}>
@@ -354,14 +369,27 @@ const ExamRenderCore = ({
                 <span className={styles.sectionBadge}>第二部分</span>
                 <h3>第 {currentIndex + 1} 題 - 專注答題模式</h3>
               </div>
-              {!isPreview && (
-                <button 
-                  className={`${styles.markBtn} ${markedQuestions.includes(activeQuestion._id) ? styles.marked : ''}`}
-                  onClick={() => onToggleMark(activeQuestion._id)}
-                >
-                  <Bookmark size={14} /> 標記待查
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {!isPreview && (
+                  <button 
+                    className={`${styles.markBtn} ${styles.reportBtn}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReportError(activeQuestion._id);
+                    }}
+                  >
+                    <AlertCircle size={14} /> 報錯
+                  </button>
+                )}
+                {!isPreview && (
+                  <button 
+                    className={`${styles.markBtn} ${markedQuestions.includes(activeQuestion._id) ? styles.marked : ''}`}
+                    onClick={() => onToggleMark(activeQuestion._id)}
+                  >
+                    <Bookmark size={14} /> 標記待查
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 題組題特規處理：左右雙欄分割捲動 */}

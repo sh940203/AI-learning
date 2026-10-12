@@ -22,6 +22,7 @@ import AITestConsole from './pages/admin/AITestConsole';
 import FeedbackDashboard from './pages/admin/FeedbackDashboard';
 import UnansweredLogs from './pages/admin/UnansweredLogs';
 import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
+import FeedbackManager from './pages/admin/FeedbackManager';
 import './index.css';
 
 const DummyPage = ({ title }) => (
@@ -67,6 +68,7 @@ function App() {
             <Route path="ai-test" element={<AITestConsole />} />
             <Route path="feedback" element={<FeedbackDashboard />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
+            <Route path="feedbacks" element={<FeedbackManager />} />
             <Route path="logs/unanswered" element={<UnansweredLogs />} />
             <Route path="settings" element={<DummyPage title="系統設定" />} />
           </Route>

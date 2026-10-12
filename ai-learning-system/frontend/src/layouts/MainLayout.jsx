@@ -1,17 +1,40 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, Bell, Search, Menu } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, Bell, Search, Menu, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import styles from './MainLayout.module.css';
 
 const MainLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showSystemFeedback, setShowSystemFeedback] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleSystemFeedbackSubmit = async (feedbackData) => {
+    try {
+      const response = await fetch('/api/feedbacks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ...feedbackData })
+      });
+      if (response.ok) {
+        alert('感謝您的回報！開發團隊會盡快處理。');
+        setShowSystemFeedback(false);
+      } else {
+        alert('提交失敗，請稍後重試。');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('發生網路錯誤，無法提交。');
+    }
   };
 
   return (
@@ -58,6 +81,9 @@ const MainLayout = () => {
           <button className={styles.primaryBtn} title="開始新課程">
             <Plus size={18} /> <span className={styles.navItemText}>開始新課程</span>
           </button>
+          <button className={styles.ghostBtn} onClick={() => setShowSystemFeedback(true)} title="錯誤回饋">
+            <AlertTriangle size={18} /> <span className={styles.navItemText}>錯誤回饋</span>
+          </button>
           <button className={styles.ghostBtn} title="協助中心">
             <HelpCircle size={18} /> <span className={styles.navItemText}>協助中心</span>
           </button>
@@ -86,6 +112,15 @@ const MainLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* 系統錯誤回饋彈窗 */}
+      {showSystemFeedback && (
+        <QuestionFeedbackModal
+          isSystemMode={true}
+          onClose={() => setShowSystemFeedback(false)}
+          onSubmit={handleSystemFeedbackSubmit}
+        />
+      )}
     </div>
   );
 };

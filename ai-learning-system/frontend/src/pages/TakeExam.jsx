@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, ArrowLeft, AlertTriangle, RefreshCw, CheckCircle, CloudOff, Cloud } from 'lucide-react';
 import { fetchExamById, updateExamProgress, fetchUserExamProgress } from '../services/examService';
 import ExamRenderCore from '../components/ExamRenderCore';
+import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import styles from './TakeExam.module.css';
 
 const TakeExam = () => {
@@ -21,6 +22,7 @@ const TakeExam = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [unansweredList, setUnansweredList] = useState([]);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [reportQuestionId, setReportQuestionId] = useState(null);
   const mainRef = useRef(null);
 
   // 1. 初始化載入考卷資料與進度
@@ -253,6 +255,33 @@ const TakeExam = () => {
     );
   };
 
+  // 打開報錯 modal
+  const handleReportError = (qId) => {
+    setReportQuestionId(qId);
+  };
+
+  // 提交報錯/反饋
+  const handleFeedbackSubmit = async (feedbackData) => {
+    try {
+      const response = await fetch('/api/feedbacks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ...feedbackData }) // userId can be added if auth context is available
+      });
+      if (response.ok) {
+        alert('感謝您的回報！我們會盡快處理。');
+        setReportQuestionId(null);
+      } else {
+        alert('提交失敗，請稍後重試。');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('發生網路錯誤，無法提交。');
+    }
+  };
+
   // 盤點未答題目並打開確認交卷 Dialog
   const checkUnansweredAndOpenDialog = () => {
     if (!examData) return;
@@ -401,6 +430,7 @@ const TakeExam = () => {
           onAnswerSelect={handleAnswerSelect}
           markedQuestions={markedQuestions}
           onToggleMark={handleToggleMark}
+          onReportError={handleReportError}
           isPreview={false}
           deviceType="desktop"
         />
@@ -459,6 +489,15 @@ const TakeExam = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 報錯與反饋彈窗 */}
+      {reportQuestionId && (
+        <QuestionFeedbackModal
+          questionId={reportQuestionId}
+          onClose={() => setReportQuestionId(null)}
+          onSubmit={handleFeedbackSubmit}
+        />
       )}
     </div>
   );

@@ -1,114 +1,161 @@
 import React, { useState } from 'react';
-import { AlertCircle, X, Check, HelpCircle, FileText, Bug } from 'lucide-react';
+import { AlertCircle, X, Check, Send } from 'lucide-react';
 import styles from './QuestionFeedbackModal.module.css';
 
-const QuestionFeedbackModal = ({ isOpen, onClose, question, onSubmitSuccess }) => {
-  const [category, setCategory] = useState('answer_error');
-  const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const QuestionFeedbackModal = ({
+  isOpen,
+  questionId,
+  question,
+  isSystemMode = false,
+  onClose,
+  onSubmit,
+  onSubmitSuccess
+}) => {
+  // If isOpen is explicitly passed as false, do not render
+  if (isOpen !== undefined && !isOpen) return null;
+
+  const resolvedQuestionId = questionId || question?._id || question?.id || null;
+  const questionTitle = question?.title || question?.questionText || null;
+
+  const [type, setType] = useState(isSystemMode ? 'system_error' : 'error');
+  const [content, setContent] = useState('');
+  const [rating, setRating] = useState(5);
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  if (!isOpen) return null;
-
-  const categories = [
-    { id: 'answer_error', label: '標準答案或算式有誤', icon: Bug },
-    { id: 'unclear_text', label: '題目描述不清/多義', icon: HelpCircle },
-    { id: 'duplicate_options', label: '選項重複或無正確解', icon: FileText },
-    { id: 'formatting_issue', label: '公式符號/格式排版異常', icon: AlertCircle }
-  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (!content.trim() && type !== 'rating') return;
+    setLoading(true);
+
+    const feedbackData = {
+      questionId: resolvedQuestionId,
+      type,
+      content: content.trim() || (type === 'rating' ? `評分：${rating} 星` : ''),
+      rating: type === 'rating' ? rating : undefined
+    };
 
     try {
-      await fetch('http://localhost:5001/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionId: question?.id || 'q_demo',
-          questionTitle: question?.title || question?.questionText,
-          category,
-          comment,
-          createdAt: new Date().toISOString()
-        })
-      });
-    } catch (err) {
-      console.log('模擬提交流程');
-    } finally {
+      if (onSubmit) {
+        await onSubmit(feedbackData);
+      } else {
+        // 預設直接呼叫後端 API
+        await fetch('/api/feedbacks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedbackData)
+        });
+      }
+
+      setSubmitted(true);
+      if (onSubmitSuccess) onSubmitSuccess();
+
       setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitted(true);
-        if (onSubmitSuccess) onSubmitSuccess();
-        setTimeout(() => {
-          setSubmitted(false);
-          setComment('');
-          onClose();
-        }, 1500);
-      }, 600);
+        setSubmitted(false);
+        setContent('');
+        if (onClose) onClose();
+      }, 1500);
+    } catch (err) {
+      console.error('送出反饋失敗:', err);
+      alert('送出反饋失敗，請稍後重試。');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <div className={styles.title}>
-            <AlertCircle color="#ef4444" size={20} />
-            回報題目疑義 / 錯題回饋
-          </div>
-          <button className={styles.closeBtn} onClick={onClose}><X size={18} /></button>
+          <h3>
+            <AlertCircle size={20} color="#ef4444" />
+            {isSystemMode ? '系統問題與功能建議' : '題目問題回報與反饋'}
+          </h3>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="關閉">
+            <X size={20} />
+          </button>
         </div>
 
         {submitted ? (
-          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#10b981' }}>
-            <Check size={48} style={{ margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>疑義回報已成功送出！</h3>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginTop: '6px' }}>
-              感謝您的反饋，教學團隊與 AI 校對系統將儘速處理此題目。
+          <div className={styles.successState}>
+            <Check size={48} color="#10b981" style={{ margin: '0 auto' }} />
+            <h4 className={styles.successTitle}>反饋已成功送出！</h4>
+            <p className={styles.successDesc}>
+              感謝您的寶貴意見，團隊將持續優化系統與題目品質。
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            {question && (
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {questionTitle && (
               <div className={styles.questionSnippet}>
-                <strong>當前題目：</strong> {question.title || question.questionText || '題目內容預覽...'}
+                <strong>關聯題目：</strong> {questionTitle}
               </div>
             )}
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>請選擇問題分類</label>
-              <div className={styles.categories}>
-                {categories.map(cat => {
-                  const Icon = cat.icon;
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`${styles.catBtn} ${category === cat.id ? styles.selected : ''}`}
-                      onClick={() => setCategory(cat.id)}
-                    >
-                      <Icon size={16} />
-                      {cat.label}
-                    </div>
-                  );
-                })}
-              </div>
+              <label>反饋類型</label>
+              <select value={type} onChange={(e) => setType(e.target.value)}>
+                {isSystemMode ? (
+                  <>
+                    <option value="system_error">系統錯誤回報 (如畫面異常、連線中斷)</option>
+                    <option value="system_suggestion">系統功能建議</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="error">題目報錯 (如選項錯誤、答案有誤、錯字)</option>
+                    <option value="suggestion">建議與討論 (解析優化、題目難度調整)</option>
+                    <option value="rating">題目品質評分</option>
+                  </>
+                )}
+              </select>
             </div>
 
+            {type === 'rating' && (
+              <div className={styles.formGroup}>
+                <label>品質評分 (1~5 星)</label>
+                <div className={styles.stars}>
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <span
+                      key={num}
+                      className={`${styles.star} ${rating >= num ? styles.activeStar : ''}`}
+                      onClick={() => setRating(num)}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className={styles.formGroup}>
-              <label className={styles.label}>補充說明 (選填)</label>
+              <label>詳細說明</label>
               <textarea
-                className={styles.textarea}
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder="請簡述哪裡有問題，例如：選項 B 數字與題目情境不符..."
+                rows={4}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={
+                  isSystemMode
+                    ? '請詳細描述您遇到的問題或希望新增的功能...'
+                    : '請描述題目問題所在（例如：選項 B 缺少條件、題目敘述不清...）'
+                }
+                required={type !== 'rating'}
               />
             </div>
 
             <div className={styles.actions}>
-              <button type="button" className={styles.cancelBtn} onClick={onClose}>取消</button>
-              <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
-                {isSubmitting ? '提交中...' : '送出疑義回報'}
+              <button type="button" className={styles.cancelBtn} onClick={onClose}>
+                取消
+              </button>
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={loading || (!content.trim() && type !== 'rating')}
+              >
+                {loading ? '送出中...' : (
+                  <>
+                    <Send size={16} /> 送出反饋
+                  </>
+                )}
               </button>
             </div>
           </form>
