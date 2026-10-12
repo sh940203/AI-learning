@@ -2,10 +2,12 @@
   /* Brand Colors */
   --color-primary: #004ac6;
   --color-primary-hover: #003ea8;
+  --color-primary-dark: #003ea8;
   --color-primary-bg: #eaf0ff;
   
   /* Surface & Background */
   --color-bg-main: #ffffff;
+  --color-bg-secondary: #f8fafc;
   --color-bg-sidebar: #f8fafc;
   --color-bg-hover: #f1f5f9;
   

@@ -431,7 +431,6 @@ const AILearning = () => {
                 <button
                   className={`${styles.historyItem} ${activeSessionId === s._id ? styles.active : ''}`}
                   onClick={() => loadSession(s._id)}
-                  title={s.title}
                 >
                   <MessageSquare size={14} className={styles.historyIcon} />
                   <span className={styles.sessionTitle} title={s.title}>{s.title}</span>
