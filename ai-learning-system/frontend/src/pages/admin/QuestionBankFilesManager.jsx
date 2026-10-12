@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import styles from './QuestionBankFilesManager.module.css';
 
-const API_BASE = 'http://localhost:5001/api/qb-files';
+const API_BASE = '/api/qb-files';
 
 const QuestionBankFilesManager = () => {
   const navigate = useNavigate();

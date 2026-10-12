@@ -132,6 +132,45 @@ router.get('/sessions/:id', async (req, res) => {
   }
 });
 
+// PATCH /api/ai/sessions/:id - Update chat session title
+router.patch('/sessions/:id', async (req, res) => {
+  try {
+    const deviceId = req.header('X-Device-Id');
+    if (!deviceId) return res.status(400).json({ success: false, message: 'Missing Device ID' });
+
+    const { title } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: '標題不能為空' });
+    }
+
+    const session = await AIChatSession.findOneAndUpdate(
+      { _id: req.params.id, deviceId },
+      { title: title.trim() },
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ success: false, message: '找不到對話紀錄' });
+    res.json({ success: true, session });
+  } catch (error) {
+    console.error("❌ Update Session Error:", error);
+    res.status(500).json({ success: false, message: '更新標題失敗', error: error.message });
+  }
+});
+
+// DELETE /api/ai/sessions/:id - Delete a chat session
+router.delete('/sessions/:id', async (req, res) => {
+  try {
+    const deviceId = req.header('X-Device-Id');
+    if (!deviceId) return res.status(400).json({ success: false, message: 'Missing Device ID' });
+
+    const session = await AIChatSession.findOneAndDelete({ _id: req.params.id, deviceId });
+    if (!session) return res.status(404).json({ success: false, message: '找不到對話紀錄' });
+    res.json({ success: true, message: '已成功刪除對話紀錄' });
+  } catch (error) {
+    console.error("❌ Delete Session Error:", error);
+    res.status(500).json({ success: false, message: '刪除對話紀錄失敗', error: error.message });
+  }
+});
+
 // AI Tutor Chat API (Multi-step Agent Workflow)
 router.post('/tutor', async (req, res) => {
   try {
