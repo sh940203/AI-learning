@@ -14,40 +14,77 @@ router.post('/generate', auth, async (req, res) => {
   try {
     const { tags = [], count = 10, excludeExamId } = req.body;
 
-    // 1. 建立篩選條件
-    const filter = { status: 'saved', isActive: true };
+    // 1. 優先使用「題庫資料庫」進行精準分類取樣 (若是錯 A 類型的題，就精準從題庫資料庫抓 A 類型的題)
+    const qbFileService = require('../services/qbFileService');
+    const matchedFromExamDb = qbFileService.getQuestionsByTagsOrConcept(tags, parseInt(count, 10) || 10);
 
-    // 若提供 tags，使用 $in 匹配任一標籤
-    if (tags.length > 0) {
-      filter.$or = [
-        { tags: { $in: tags } },
-        { category: { $in: tags } }
-      ];
-    }
+    let questions = [];
 
-    // 排除原始考卷的題目（避免重複練習同一批）
-    if (excludeExamId) {
-      filter.examId = { $ne: excludeExamId };
-    }
-
-    // 2. 從題庫中隨機取樣
-    let questions = await Question.aggregate([
-      { $match: filter },
-      { $sample: { size: parseInt(count) } },
-      {
-        $project: {
-          _id: 1, type: 1, html: 1, options: 1,
-          subQuestions: 1, explanation: 1, tags: 1,
-          category: 1, subject: 1, score: 1, difficulty: 1
+    if (matchedFromExamDb && matchedFromExamDb.length > 0) {
+      // 將「題庫資料庫」取樣題目快速同步至 MongoDB Question 集合，確保具備 _id 可供考卷關聯
+      const questionDocs = await Promise.all(matchedFromExamDb.map(async (q) => {
+        let existing = await Question.findOne({ originalQbId: q.id });
+        if (!existing) {
+          existing = new Question({
+            originalQbId: q.id,
+            type: q.type === 2 ? 'single' : 'multiple',
+            html: q.questionHtml,
+            options: q.options.map(o => ({ id: o.id, text: o.text || o.html, isCorrect: o.isCorrect })),
+            explanation: q.explanationText || q.explanationHtml || '',
+            tags: [q.chapterName, q.sectionName, q.textbook].filter(Boolean),
+            category: q.chapterName,
+            subject: q.textbook,
+            difficulty: q.difficulty === 1 ? 'easy' : q.difficulty === 3 ? 'hard' : 'medium',
+            status: 'saved',
+            isActive: true
+          });
+          await existing.save();
         }
-      }
-    ]);
+        return existing;
+      }));
 
-    // 3. Fallback: 如果依據標籤找不到題目，改為隨機抽取不限標籤的題目（避免使用者覺得壞掉）
+      questions = questionDocs.map(q => ({
+        _id: q._id,
+        type: q.type,
+        html: q.html,
+        options: q.options,
+        explanation: q.explanation,
+        tags: q.tags,
+        category: q.category,
+        subject: q.subject,
+        difficulty: q.difficulty
+      }));
+    }
+
+    // 2. Fallback: 若「題庫資料庫」尚未載入或無題目，使用原本 Question aggregate
+    if (questions.length === 0) {
+      const filter = { status: 'saved', isActive: true };
+      if (tags.length > 0) {
+        filter.$or = [
+          { tags: { $in: tags } },
+          { category: { $in: tags } }
+        ];
+      }
+      if (excludeExamId) {
+        filter.examId = { $ne: excludeExamId };
+      }
+
+      questions = await Question.aggregate([
+        { $match: filter },
+        { $sample: { size: parseInt(count) } },
+        {
+          $project: {
+            _id: 1, type: 1, html: 1, options: 1,
+            subQuestions: 1, explanation: 1, tags: 1,
+            category: 1, subject: 1, score: 1, difficulty: 1
+          }
+        }
+      ]);
+    }
+
+    // 3. Fallback: 如果依據標籤仍找不到題目，改為隨機抽取不限標籤的題目
     if (questions.length === 0) {
       const fallbackFilter = { status: 'saved', isActive: true };
-      // 移除 excludeExamId，確保如果資料庫只有一張考卷，至少還能撈出裡面的題目
-      
       questions = await Question.aggregate([
         { $match: fallbackFilter },
         { $sample: { size: parseInt(count) } },
@@ -64,7 +101,7 @@ router.post('/generate', auth, async (req, res) => {
     if (questions.length === 0) {
       return res.status(200).json({
         success: true,
-        data: { questions: [], message: '目前題庫中尚無符合此知識點的題目，請先在後台新增更多題目！' }
+        data: { questions: [], message: '目前題庫中尚無符合此知識點的題目，請先在後台新增或同步題庫！' }
       });
     }
 
@@ -72,7 +109,7 @@ router.post('/generate', auth, async (req, res) => {
     
     // 建立新考卷 (設定為個人生成的微測驗)
     const newExam = new Exam({
-      title: `專屬強化微測驗 - ${new Date().toLocaleDateString('zh-TW')}`,
+      title: `專屬強化微測驗 - ${new Date().toLocaleDateString('zh-TW')} (題庫資料庫精準匹配)`,
       status: 'published',
       isActive: true,
       isGenerated: true,
@@ -90,6 +127,7 @@ router.post('/generate', auth, async (req, res) => {
         examId: savedExam._id,
         totalFound: questions.length,
         requestedCount: count,
+        source: '題庫資料庫 (精準分類取樣)',
         tags
       }
     });
@@ -110,48 +148,75 @@ if (process.env.GEMINI_API_KEY) {
 
 // ============================================================
 // @route   POST /api/quiz/generate-dynamic
-// @desc    透過 Gemini 動態生成使用者的弱點觀念測驗
-// @body    { intensity: 'quick' | 'standard' | 'high' }
+// @desc    透過「題庫資料庫」母題種子結合 Gemini 動態生成使用者的弱點觀念測驗
+// @body    { intensity: 'quick' | 'standard' | 'high', tags?: string[] }
 // @access  Private
 // ============================================================
 router.post('/generate-dynamic', auth, async (req, res) => {
   try {
-    const { intensity = 'quick' } = req.body;
+    const { intensity = 'quick', tags = [] } = req.body;
     let count = 10;
     if (intensity === 'standard') count = 30;
     if (intensity === 'high') count = 50;
     
-    // 取出最弱的 3 個觀念
-    const weakConcepts = await MistakeRecord.find({ userId: req.user.id })
-      .sort({ wrongCount: -1 })
-      .limit(3);
-      
-    let conceptTags = weakConcepts.map(c => c.conceptTag);
+    // 1. 決定薄弱觀念標籤
+    let conceptTags = [...tags];
     if (conceptTags.length === 0) {
-      conceptTags = ['基礎綜合測驗']; // fallback if no mistakes
+      const weakConcepts = await MistakeRecord.find({ userId: req.user.id })
+        .sort({ wrongCount: -1 })
+        .limit(3);
+      conceptTags = weakConcepts.map(c => c.conceptTag);
+    }
+    if (conceptTags.length === 0) {
+      conceptTags = ['商業文書應用', '數位科技概念']; // fallback
     }
     
+    // 2. 從「題庫資料庫」中抓取同類型的母題種子
+    const qbFileService = require('../services/qbFileService');
+    const seedQuestions = qbFileService.getQuestionsByTagsOrConcept(conceptTags, 4);
+
+    let seedContextText = '';
+    if (seedQuestions && seedQuestions.length > 0) {
+      seedContextText = seedQuestions.map((s, idx) => `
+[母題範例 ${idx + 1}]
+出處：《${s.textbook}》第${s.chapter}章 ${s.chapterName} - ${s.sectionName}
+題目：${s.questionText}
+選項：${s.options.map(o => `${o.id}. ${o.text}`).join('  ')}
+正確答案：${s.answer}
+解析：${s.explanationText || '無'}
+`).join('\n');
+    }
+
     if (!genAI) {
       return res.status(500).json({ success: false, message: 'Server missing GEMINI_API_KEY' });
     }
     
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     const prompt = `
-你是一位專業的考題生成專家。請針對以下薄弱觀念生成 ${count} 題單選題：
-薄弱觀念: ${conceptTags.join(', ')}
+你是一位專業的高職商科考題專家。
+學生近期在以下弱點觀念出現錯誤：${conceptTags.join(', ')}。
+為了確保學生正確理解概念，我們從官方《題庫資料庫》精選了同類型的母題範例如下：
+${seedContextText}
 
-請嚴格回傳一個 JSON 陣列，每個元素代表一題，格式如下，不要包含 markdown 標籤：
+請嚴格根據以上母題的知識深度、題目風格與核心觀念，生成 ${count} 題「確保觀念強化單選題」：
+【重要生成規定】：
+1. 嚴格依照學生錯誤的觀念類型出題，絕不可錯 A 觀念卻生成 B 觀念題目！
+2. 題目品質必須貼近官方教材規範，選項具備合理干擾項。
+3. 詳解必須清楚說明解題概念與正誤原因。
+4. 請嚴格回傳一個 JSON 陣列，不要包含 markdown 標籤（如 \`\`\`json）：
+
 [
   {
     "type": "single",
-    "html": "題目內容...",
+    "html": "<p>題目文字...</p>",
     "options": [
-      { "id": "A", "text": "選項 A", "isCorrect": true },
-      { "id": "B", "text": "選項 B", "isCorrect": false },
-      { "id": "C", "text": "選項 C", "isCorrect": false },
-      { "id": "D", "text": "選項 D", "isCorrect": false }
+      { "id": "A", "text": "選項 A 文字", "isCorrect": true },
+      { "id": "B", "text": "選項 B 文字", "isCorrect": false },
+      { "id": "C", "text": "選項 C 文字", "isCorrect": false },
+      { "id": "D", "text": "選項 D 文字", "isCorrect": false }
     ],
-    "explanation": "詳解..."
+    "explanation": "詳解分析...",
+    "category": "${conceptTags[0] || '專業觀念'}"
   }
 ]
 `;
@@ -163,16 +228,52 @@ router.post('/generate-dynamic', auth, async (req, res) => {
     
     const questions = JSON.parse(text);
 
+    // 同步建立考卷記錄
+    const questionDocs = await Promise.all(questions.map(async (q) => {
+      const doc = new Question({
+        type: 'single',
+        html: q.html,
+        options: q.options,
+        explanation: q.explanation,
+        tags: conceptTags,
+        category: q.category || conceptTags[0],
+        status: 'saved',
+        isActive: true
+      });
+      return await doc.save();
+    }));
+
+    const Exam = require('../models/Exam');
+    const newExam = new Exam({
+      title: `AI 觀念確保強化測驗 - ${new Date().toLocaleDateString('zh-TW')}`,
+      status: 'published',
+      isActive: true,
+      isGenerated: true,
+      userId: req.user.id,
+      displayMode: 'all',
+      timeLimit: count === 10 ? 15 : count === 30 ? 45 : 90,
+      questions: questionDocs.map(q => q._id)
+    });
+    const savedExam = await newExam.save();
+
     const tokens = result.response.usageMetadata?.totalTokenCount || (prompt.length + text.length) * 1.5;
     logApiUsage(tokens, false);
 
     res.status(200).json({
       success: true,
       data: {
+        examId: savedExam._id,
         questions,
+        seeds: seedQuestions.map(s => ({
+          textbook: s.textbook,
+          chapterName: s.chapterName,
+          sectionName: s.sectionName,
+          questionText: s.questionText
+        })),
         totalGenerated: questions.length,
         concepts: conceptTags,
-        intensity
+        intensity,
+        source: '題庫資料庫 (精準分類 AI 學習衍生)'
       }
     });
     

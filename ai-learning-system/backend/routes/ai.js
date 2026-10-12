@@ -170,8 +170,23 @@ router.post('/tutor', async (req, res) => {
       extractedInfo = { keywords: [message.slice(0,5)], subject: '未分類', chapter: '' };
     }
 
-    // --- Step 2: 系統檢索 (RAG Vector Search) ---
-    let kbContext = '無相符的教材資料';
+    // --- Step 2: 系統檢索 (官方「題庫資料庫」檢索 + RAG Vector Search) ---
+    const qbFileService = require('../services/qbFileService');
+    const matchedExamDb = qbFileService.getQuestionsForAIContext(message, 3);
+    
+    let examDbTexts = [];
+    if (matchedExamDb && matchedExamDb.length > 0) {
+      examDbTexts = matchedExamDb.map(q => 
+        `【官方題庫資料庫 - 《${q.textbook}》第${q.chapter}章 ${q.chapterName} - ${q.sectionName}】\n` +
+        `考題：${q.questionText}\n` +
+        `選項：${q.options.map(o => `${o.id}. ${o.text}`).join('  ')}\n` +
+        `標準答案：${q.answer}\n` +
+        `詳解：${q.explanationText || '無'}`
+      );
+    }
+
+    let kbTexts = [...examDbTexts];
+
     if (genAI) {
       try {
         // 將學生的原問題轉為向量
@@ -188,10 +203,10 @@ router.post('/tutor', async (req, res) => {
                 path: "embedding",
                 queryVector: queryVector,
                 numCandidates: 10,
-                limit: 3
+                limit: 2
               }
             }
-          ]).catch(err => { console.warn("KnowledgeBase search failed:", err.message); return []; }),
+          ]).catch(err => { return []; }),
           
           Question.aggregate([
             {
@@ -200,40 +215,36 @@ router.post('/tutor', async (req, res) => {
                 path: "embedding",
                 queryVector: queryVector,
                 numCandidates: 10,
-                limit: 3
+                limit: 2
               }
             }
-          ]).catch(err => { console.warn("Question search failed:", err.message); return []; })
+          ]).catch(err => { return []; })
         ]);
 
-        let kbTexts = [];
         if (kbs && kbs.length > 0) {
-          kbTexts.push(kbs.map(k => `【教材 - ${k.subject || ''} ${k.chapter || ''}】\n${k.content}`).join('\n\n'));
+          kbTexts.push(kbs.map(k => `【補充教材 - ${k.subject || ''} ${k.chapter || ''}】\n${k.content}`).join('\n\n'));
         }
         if (questions && questions.length > 0) {
-          kbTexts.push(questions.map(q => `【相關考題 - ${q.subject || ''}】\n${q.html}\n詳解: ${q.explanation || '無'}`).join('\n\n'));
-        }
-
-        if (kbTexts.length > 0) {
-          kbContext = kbTexts.join('\n\n---\n\n');
+          kbTexts.push(questions.map(q => `【線上題庫考題 - ${q.subject || ''}】\n${q.html}\n詳解: ${q.explanation || '無'}`).join('\n\n'));
         }
       } catch (searchError) {
-        console.error("❌ Vector Search 失敗 (確認是否已在 Atlas 建立 vector_index):", searchError);
-        kbContext = '系統搜尋教材時發生錯誤，請通知管理員。';
+        console.warn("⚠️ Vector Search 略過 (使用題庫資料庫檢索結果):", searchError.message);
       }
     }
 
+    let kbContext = kbTexts.length > 0 ? kbTexts.join('\n\n---\n\n') : '無相符的教材資料';
+
     // --- Step 3: 最終推論與解答 (Final Output) ---
     const systemInstruction = `
-你現在是一位專為「高職商科學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心的高職老師。
+你現在是一位專為「高職商科與數位科技學生」設計的 AI 學習導師。你的回答語氣要像是個有耐心、邏輯清晰的高職專業老師。
 【工作流與回答規定】
-請優先根據以下檢索到的「中央知識庫檢索結果」來回答學生的問題。請遵循以下步驟作答：
-1. 知識檢索：若知識庫有相關內容，請優先引用；若問題（例如基礎數學 ${message}）在知識庫中找不到，你可以根據自身的常識與知識來為學生解答，不需要拒絕回答。
-2. 分析意圖：明確告訴學生這題考的是什麼知識點。
-3. 逐步拆解：一步步帶領學生解析問題，培養學生的思考能力。
-4. 知識點標籤：請在你回覆的**最末尾**，務必加上一個知識點標籤，格式為 \`[TAG:知識點名稱]\`。例如：\`[TAG:折舊計算]\`。請注意標籤只能有一個，且必須是獨立的一行，放在最後面。
+請優先根據以下從「官方題庫資料庫」與「中央知識庫」檢索到的內容來回答學生的問題：
+1. 知識檢索與對齊：若題庫資料庫有相關題目或概念，請務必以此官方標準為準回答，並於回覆中明確標註來源（例如：「📖 參考自《數位科技應用(上)》第1章 認識文書軟體」）。
+2. 分析意圖：明確告訴學生這題考的是什麼知識點或觀念。
+3. 逐步拆解：一步步帶領學生解析問題與關鍵字，培養學生的解題能力。
+4. 知識點標籤：請在你回覆的**最末尾**，務必加上一個知識點標籤，格式為 \`[TAG:知識點名稱]\`。例如：\`[TAG:文書檢視模式]\`。請注意標籤只能有一個，且必須是獨立的一行，放在最後面。
 
-【中央知識庫檢索結果】
+【官方題庫資料庫與知識檢索內容】
 ${kbContext}
     `;
 

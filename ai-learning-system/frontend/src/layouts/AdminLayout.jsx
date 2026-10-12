@@ -38,8 +38,11 @@ const AdminLayout = () => {
           <NavLink to="/admin/questions" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫管理">
             <Database size={20} /> <span className={styles.navItemText}>題庫管理</span>
           </NavLink>
-          <NavLink to="/admin/knowledge" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫資料庫檔管理">
+          <NavLink to="/admin/knowledge" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫資料庫檔管理 (原有)">
             <BookOpen size={20} /> <span className={styles.navItemText}>題庫資料庫檔管理</span>
+          </NavLink>
+          <NavLink to="/admin/question-bank-files" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫資料庫檔案管理">
+            <Database size={20} /> <span className={styles.navItemText}>題庫資料庫檔案管理</span>
           </NavLink>
           <NavLink to="/admin/ai-test" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="AI 出題測試台">
             <Sparkles size={20} /> <span className={styles.navItemText}>AI 出題測試台</span>

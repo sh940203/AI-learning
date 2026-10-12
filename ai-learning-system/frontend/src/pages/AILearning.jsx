@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Paperclip, Send, RefreshCw, Loader2, MessageSquare, Plus, X } from 'lucide-react';
+import { Paperclip, Send, RefreshCw, Loader2, MessageSquare, Plus, X, Pencil, Trash2, Check, Copy, CheckCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -63,6 +63,17 @@ const AILearning = () => {
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   
+  // Sidebar 重命名 / 刪除狀態
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [hoveredSessionId, setHoveredSessionId] = useState(null);
+
+  // 訊息編輯 / 複製狀態
+  const [editingMsgIndex, setEditingMsgIndex] = useState(null);
+  const [editedMsgContent, setEditedMsgContent] = useState('');
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [hoveredMsgIndex, setHoveredMsgIndex] = useState(null);
+
   const [messages, setMessages] = useState([
     {
       role: 'model',
@@ -77,6 +88,7 @@ const AILearning = () => {
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const renamInputRef = useRef(null);
 
   const remainingCount = Math.max(0, DAILY_LIMIT - usedCount);
   const isLimitReached = usedCount >= DAILY_LIMIT;
@@ -149,6 +161,62 @@ const AILearning = () => {
     setPdfText('');
     setPdfName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // ── Sidebar 重命名 ──
+  const startRename = (e, s) => {
+    e.stopPropagation();
+    setEditingSessionId(s._id);
+    setEditingTitle(s.title);
+    setTimeout(() => renamInputRef.current?.focus(), 50);
+  };
+
+  const commitRename = async (e) => {
+    if (e) e.stopPropagation();
+    if (!editingTitle.trim()) { setEditingSessionId(null); return; }
+    try {
+      await fetch(`http://localhost:5001/api/ai/sessions/${editingSessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Id': deviceId },
+        body: JSON.stringify({ title: editingTitle.trim() })
+      });
+      setSessions(prev => prev.map(s => s._id === editingSessionId ? { ...s, title: editingTitle.trim() } : s));
+    } catch (err) { console.error(err); }
+    setEditingSessionId(null);
+  };
+
+  // ── Sidebar 刪除 ──
+  const deleteSession = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('確定要刪除此對話紀錄嗎？')) return;
+    try {
+      await fetch(`http://localhost:5001/api/ai/sessions/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-Device-Id': deviceId }
+      });
+      setSessions(prev => prev.filter(s => s._id !== id));
+      if (activeSessionId === id) handleNewChat();
+    } catch (err) { console.error(err); }
+  };
+
+  // ── 訊息複製 ──
+  const copyMessage = (content, idx) => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedIndex(idx);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    });
+  };
+
+  // ── 訊息編輯（只修改前端 messages，不重送 AI） ──
+  const startEditMsg = (idx, content) => {
+    setEditingMsgIndex(idx);
+    setEditedMsgContent(content);
+  };
+
+  const saveEditMsg = (idx) => {
+    if (!editedMsgContent.trim()) { setEditingMsgIndex(null); return; }
+    setMessages(prev => prev.map((m, i) => i === idx ? { ...m, content: editedMsgContent.trim() } : m));
+    setEditingMsgIndex(null);
   };
 
   // 任務 A：前端圖片/PDF上傳處理
@@ -309,6 +377,9 @@ const AILearning = () => {
   };
 
   const handleKeyDown = (e) => {
+    // 中文輸入法組字期間 isComposing 為 true，此時按 Enter 是確認字詞而非送出
+    // 需等到 isComposing 變為 false（確認完畢）再按 Enter 才真正送出
+    if (e.isComposing || e.nativeEvent?.isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -326,14 +397,53 @@ const AILearning = () => {
         </div>
         <div className={styles.historyList}>
           {sessions.map(s => (
-            <button 
-              key={s._id} 
-              className={`${styles.historyItem} ${activeSessionId === s._id ? styles.active : ''}`}
-              onClick={() => loadSession(s._id)}
+            <div
+              key={s._id}
+              className={`${styles.historyItemWrap} ${activeSessionId === s._id ? styles.activeWrap : ''}`}
+              onMouseEnter={() => setHoveredSessionId(s._id)}
+              onMouseLeave={() => setHoveredSessionId(null)}
             >
-              <MessageSquare size={16} style={{ flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
-            </button>
+              {editingSessionId === s._id ? (
+                /* 重命名內聯輸入框 */
+                <div className={styles.renameRow} onClick={e => e.stopPropagation()}>
+                  <input
+                    ref={renamInputRef}
+                    className={styles.renameInput}
+                    value={editingTitle}
+                    onChange={e => setEditingTitle(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') setEditingSessionId(null);
+                    }}
+                    onBlur={commitRename}
+                  />
+                  <button className={styles.iconBtn} onClick={commitRename} title="確認">
+                    <Check size={14} />
+                  </button>
+                </div>
+              ) : (
+                /* 一般顯示列 */
+                <button
+                  className={`${styles.historyItem} ${activeSessionId === s._id ? styles.active : ''}`}
+                  onClick={() => loadSession(s._id)}
+                >
+                  <MessageSquare size={14} style={{ flexShrink: 0 }} />
+                  <span className={styles.sessionTitle}>{s.title}</span>
+                </button>
+              )}
+
+              {/* hover 時顯示操作按鈕 */}
+              {hoveredSessionId === s._id && editingSessionId !== s._id && (
+                <div className={styles.sessionActions}>
+                  <button className={styles.iconBtn} onClick={e => startRename(e, s)} title="重命名">
+                    <Pencil size={13} />
+                  </button>
+                  <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} onClick={e => deleteSession(e, s._id)} title="刪除">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -355,32 +465,87 @@ const AILearning = () => {
 
         <div className={styles.chatHistory}>
           {messages.map((msg, index) => (
-            <div key={index} className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : ''}`}>
+            <div
+              key={index}
+              className={`${styles.messageRow} ${msg.role === 'user' ? styles.userRow : ''}`}
+              onMouseEnter={() => setHoveredMsgIndex(index)}
+              onMouseLeave={() => setHoveredMsgIndex(null)}
+            >
               {msg.role === 'model' && <div className={styles.aiAvatarSmall}></div>}
-              <div className={msg.role === 'user' ? styles.userBubble : styles.messageBubble}>
-                {msg.imageUrl && (
-                  <img 
-                    src={msg.imageUrl} 
-                    alt="附加圖片預覽" 
-                    style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', marginBottom: '8px', display: 'block' }} 
-                  />
-                )}
-                {msg.pdfName && (
-                  <div style={{ padding: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', marginBottom: '8px', fontSize: '13px' }}>
-                    📄 附檔 PDF：{msg.pdfName}
-                  </div>
-                )}
-                {msg.role === 'user' ? (
-                  <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
-                ) : (
-                  <div className={styles.markdownContent}>
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkMath]} 
-                      rehypePlugins={[rehypeKatex]}
+
+              <div className={styles.bubbleWrapper}>
+                <div className={msg.role === 'user' ? styles.userBubble : styles.messageBubble}>
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="附加圖片預覽"
+                      style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', marginBottom: '8px', display: 'block' }}
+                    />
+                  )}
+                  {msg.pdfName && (
+                    <div style={{ padding: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', marginBottom: '8px', fontSize: '13px' }}>
+                      📄 附檔 PDF：{msg.pdfName}
+                    </div>
+                  )}
+                  {msg.role === 'user' ? (
+                    editingMsgIndex === index ? (
+                      /* 訊息編輯模式 */
+                      <div className={styles.msgEditWrap}>
+                        <textarea
+                          className={styles.msgEditArea}
+                          value={editedMsgContent}
+                          onChange={e => setEditedMsgContent(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEditMsg(index); }
+                            if (e.key === 'Escape') setEditingMsgIndex(null);
+                          }}
+                          autoFocus
+                          rows={Math.min(6, (editedMsgContent.match(/\n/g)||[]).length + 2)}
+                        />
+                        <div className={styles.msgEditActions}>
+                          <button className={styles.msgEditBtn} onClick={() => saveEditMsg(index)}>
+                            <Check size={13} /> 儲存
+                          </button>
+                          <button className={`${styles.msgEditBtn} ${styles.msgEditBtnCancel}`} onClick={() => setEditingMsgIndex(null)}>
+                            <X size={13} /> 取消
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.content}</p>
+                    )
+                  ) : (
+                    <div className={styles.markdownContent}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                      >
+                        {msg.content.replace(/\[TAG:.*?\]/g, '')}
+                      </ReactMarkdown>
+                      <FeedbackRatingBar question={{ title: msg.content.slice(0, 60) }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* 使用者訊息的操作按鈕 (hover 才顯示) */}
+                {msg.role === 'user' && hoveredMsgIndex === index && editingMsgIndex !== index && (
+                  <div className={styles.msgActions}>
+                    <button
+                      className={styles.msgActionBtn}
+                      onClick={() => startEditMsg(index, msg.content)}
+                      title="編輯訊息"
                     >
-                      {msg.content.replace(/\[TAG:.*?\]/g, '')}
-                    </ReactMarkdown>
-                    <FeedbackRatingBar question={{ title: msg.content.slice(0, 60) }} />
+                      <Pencil size={13} />
+                      <span>編輯</span>
+                    </button>
+                    <button
+                      className={styles.msgActionBtn}
+                      onClick={() => copyMessage(msg.content, index)}
+                      title="複製文字"
+                    >
+                      {copiedIndex === index ? <CheckCheck size={13} /> : <Copy size={13} />}
+                      <span>{copiedIndex === index ? '已複製' : '複製'}</span>
+                    </button>
                   </div>
                 )}
               </div>

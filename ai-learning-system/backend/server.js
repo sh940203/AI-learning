@@ -71,6 +71,13 @@ app.use('/api/ai', require('./routes/ai-utils'));
 app.use('/api/admin/knowledge', require('./routes/adminKnowledge'));
 app.use('/api/admin/logs', require('./routes/adminLogs'));
 app.use('/api/admin/analytics', require('./routes/adminAnalytics'));
+app.use('/api/qb-files', require('./routes/qbFiles'));
+
+// 初始化實體題庫資料庫檔案服務
+const qbFileService = require('./services/qbFileService');
+qbFileService.init().catch(err => {
+  console.error('初始化題庫資料庫失敗:', err);
+});
 
 const path = require('path');
 

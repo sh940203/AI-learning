@@ -496,6 +496,11 @@ const ErrorAnalysis = () => {
                     <div className={styles.quizSuccessBadge}>
                       ✅ 已生成 {quizResult.questions.length} 題強化微測驗
                     </div>
+                    {quizResult.source && (
+                      <div style={{ fontSize: '11px', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.1)', padding: '3px 8px', borderRadius: '4px', margin: '4px 0 8px 0', display: 'inline-block' }}>
+                        📚 核心源：{quizResult.source}
+                      </div>
+                    )}
                     <p className={styles.quizDesc}>
                       涵蓋知識點：{quizResult.tags?.join('、') || '相關弱項'}
                     </p>
@@ -515,6 +520,9 @@ const ErrorAnalysis = () => {
               </div>
             ) : (
               <div className={styles.generateOptions}>
+                <div style={{ fontSize: '11.5px', color: '#94a3b8', marginBottom: '8px', lineHeight: 1.4, background: 'rgba(15, 23, 42, 0.4)', padding: '6px 10px', borderRadius: '6px' }}>
+                  🎯 依錯題類型精準對接《題庫資料庫》母題，保證錯 A 觀念精準強化 A 觀念
+                </div>
                 {[
                   { count: 10, label: '生成 10 題', desc: '快速檢查薄弱觀念（約 5 分鐘）' },
                   { count: 30, label: '生成 30 題', desc: '標準強度模擬練習（約 15 分鐘）' },
