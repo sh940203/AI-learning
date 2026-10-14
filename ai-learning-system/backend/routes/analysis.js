@@ -178,6 +178,60 @@ router.get('/mastery', auth, async (req, res) => {
 });
 
 // ============================================================
+// AI 解析 JSON 容錯解析
+// Gemini 偶爾回傳被截斷或含未轉義字元的 JSON，直接 JSON.parse 會拋出
+// 「Unterminated string in JSON」。此處依序嘗試：完整解析 → 逐欄 regex 抽取 → 預設文案補齊。
+// ============================================================
+const AI_EXPLAIN_FIELDS = ['misconception', 'blindspot', 'suggestion', 'hint'];
+
+const buildFallbackExplain = (correctOptions) => ({
+  misconception: '混淆了相關概念的適用範圍與邊界條件',
+  blindspot: '忽略了題目中的關鍵限制詞或情境前提',
+  suggestion: '建議重新整理相關觀念的脈絡與適用情況',
+  hint: `正確答案為「${(correctOptions || []).join('、')}」，關鍵在於仔細閱讀題目中的限定詞。`
+});
+
+const unescapeJsonString = (str) => str
+  .replace(/\\n/g, '\n')
+  .replace(/\\t/g, ' ')
+  .replace(/\\"/g, '"')
+  .replace(/\\\\/g, '\\')
+  .trim();
+
+const parseAIExplainJson = (rawText, correctOptions) => {
+  const fallback = buildFallbackExplain(correctOptions);
+  let text = String(rawText || '').replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+  let parsed = null;
+
+  // 1. 截取第一個 { 到最後一個 } 後嘗試標準解析
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try {
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch { /* 交給下一層 regex 抽取 */ }
+  }
+
+  // 2. 逐欄抽取 (容許結尾引號未閉合的截斷字串)
+  if (!parsed || typeof parsed !== 'object') {
+    parsed = {};
+    for (const field of AI_EXPLAIN_FIELDS) {
+      const match = text.match(new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)("|$)`));
+      if (match && match[1]) parsed[field] = unescapeJsonString(match[1]);
+    }
+  }
+
+  // 3. 缺漏或非字串欄位以預設文案補齊，確保前端四欄皆可渲染
+  const result = {};
+  for (const field of AI_EXPLAIN_FIELDS) {
+    const value = parsed[field];
+    result[field] = (typeof value === 'string' && value.trim()) ? value.trim() : fallback[field];
+  }
+  return result;
+};
+
+// ============================================================
 // @route   POST /api/analysis/ai-explain
 // @desc    召喚 AI 針對指定錯題，產生個人化的「謬誤/盲點/建議」三維度解析
 // @access  Private
@@ -221,15 +275,7 @@ ${q?.explanation || '無'}
 
     if (!geminiApiKey) {
       // 若無 API Key，回傳高質感的預設 Mock 分析
-      return res.status(200).json({
-        success: true,
-        data: {
-          misconception: '混淆了相關概念的適用範圍與邊界條件',
-          blindspot: '忽略了題目中的關鍵限制詞或情境前提',
-          suggestion: '建議重新整理相關觀念的脈絡與適用情況',
-          hint: `正確答案為「${(correctOptions || []).join('、')}」，關鍵在於仔細閱讀題目中的限定詞。`
-        }
-      });
+      return res.status(200).json({ success: true, data: buildFallbackExplain(correctOptions) });
     }
 
     const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -240,7 +286,7 @@ ${q?.explanation || '無'}
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 512,
+        maxOutputTokens: 1024,
         responseMimeType: "application/json",
       }
     });
@@ -248,9 +294,8 @@ ${q?.explanation || '無'}
     const response = await result.response;
     const rawText = response.text() || '{}';
 
-    // 清理並解析 JSON (雖然設了 responseMimeType，但有時仍會有 ```json 包裝)
-    const cleanedText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const analysisResult = JSON.parse(cleanedText);
+    // 容錯解析 JSON (處理 ```json 包裝、截斷字串與未轉義字元)
+    const analysisResult = parseAIExplainJson(rawText, req.body.correctOptions);
 
     res.status(200).json({ success: true, data: analysisResult });
   } catch (error) {
@@ -261,8 +306,8 @@ ${q?.explanation || '無'}
       data: {
         misconception: '系統分析時發生意外錯誤',
         blindspot: '可能原因：API Key無效、額度不足、或題目含有敏感字眼',
-        suggestion: '請確認伺服器日誌或聯絡開發人員',
-        hint: `錯誤訊息: ${error.message}`
+        suggestion: '請稍後再試一次，或聯絡開發人員',
+        hint: 'AI 服務暫時無法回應，可先參考上方題目詳解。'
       }
     });
   }
