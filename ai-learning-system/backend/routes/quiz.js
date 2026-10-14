@@ -4,19 +4,38 @@ const Question = require('../models/Question');
 const auth = require('../middleware/authMiddleware');
 const { logApiUsage } = require('../services/metricService');
 
+// Optional auth middleware — 不拒絕未登入，只是 req.user 為 null
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.user = null;
+    return next();
+  }
+  const jwt = require('jsonwebtoken');
+  try {
+    const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'fallback_secret_key');
+    req.user = decoded.user;
+  } catch {
+    req.user = null;
+  }
+  next();
+};
+
 // ============================================================
 // @route   POST /api/quiz/generate
 // @desc    依知識點標籤，從題庫中隨機撈取既有題目，組裝強化微測驗
 // @body    { tags: string[], count: number, examId?: string (排除指定試卷) }
-// @access  Private
+// @access  Public (optional auth — 登入後額外儲存考卷至帳號)
 // ============================================================
-router.post('/generate', auth, async (req, res) => {
+router.post('/generate', optionalAuth, async (req, res) => {
+
   try {
-    const { tags = [], count = 10, excludeExamId } = req.body;
+    const { tags = [], excludeExamId } = req.body;
+    const count = parseInt(req.body.count, 10) || 10;
 
     // 1. 優先使用「題庫資料庫」進行精準分類取樣 (若是錯 A 類型的題，就精準從題庫資料庫抓 A 類型的題)
     const qbFileService = require('../services/qbFileService');
-    const matchedFromExamDb = qbFileService.getQuestionsByTagsOrConcept(tags, parseInt(count, 10) || 10);
+    const matchedFromExamDb = qbFileService.getQuestionsByTagsOrConcept(tags, count);
 
     let questions = [];
 
@@ -27,14 +46,19 @@ router.post('/generate', auth, async (req, res) => {
         if (!existing) {
           existing = new Question({
             originalQbId: q.id,
-            type: q.type === 2 ? 'single' : 'multiple',
-            html: q.questionHtml,
-            options: q.options.map(o => ({ id: o.id, text: o.text || o.html, isCorrect: o.isCorrect })),
-            explanation: q.explanationText || q.explanationHtml || '',
+            // 題庫題型代碼：1 是非 / 2 單選 / 3 多選
+            type: q.type === 1 ? 'tf' : q.type === 3 ? 'multiple' : 'single',
+            html: q.questionHtml || q.questionText || '(無題目內容)',
+            // 選項 text 為必填：純圖選項保留 html，完全空白的選項 (如是非題 C/D) 直接濾除
+            options: q.options
+              .filter(o => (o.text && o.text.trim()) || (o.html && o.html.trim()))
+              .map(o => ({ id: o.id, text: (o.text && o.text.trim()) ? o.text : o.html, isCorrect: o.isCorrect })),
+            explanation: q.explanationText || '', // 只存純文字詳解，避免 Word HTML 標籤原樣顯示
             tags: [q.chapterName, q.sectionName, q.textbook].filter(Boolean),
             category: q.chapterName,
             subject: q.textbook,
-            difficulty: q.difficulty === 1 ? 'easy' : q.difficulty === 3 ? 'hard' : 'medium',
+            // 題庫難度 1/2/3 對應 Question schema 的 1-5 數值尺度
+            difficulty: q.difficulty === 1 ? 2 : q.difficulty === 3 ? 4 : 3,
             status: 'saved',
             isActive: true
           });
@@ -113,7 +137,7 @@ router.post('/generate', auth, async (req, res) => {
       status: 'published',
       isActive: true,
       isGenerated: true,
-      userId: req.user.id,
+      userId: req.user?.id || null,
       displayMode: 'all',
       timeLimit: count === 10 ? 15 : count === 30 ? 45 : 90,
       questions: questions.map(q => q._id)

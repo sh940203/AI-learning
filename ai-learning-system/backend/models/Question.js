@@ -45,6 +45,7 @@ const questionSchema = new mongoose.Schema({
   subject: { type: String }, // 科目名稱 (例如：'數學甲', '英文', '國文')
   difficulty: { type: Number, min: 1, max: 5, default: 3 },
   status: { type: String, enum: ['draft', 'saved'], default: 'draft' }, // 草稿或已儲存
+  originalQbId: { type: String, index: true, sparse: true }, // 對應《題庫資料庫》原始題目 ID (同步用，避免重複建立)
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
