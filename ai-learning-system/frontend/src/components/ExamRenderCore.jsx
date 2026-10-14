@@ -216,21 +216,36 @@ const ExamRenderCore = ({
               const status = getQStatus(q);
               const isMarked = markedQuestions.includes(q._id);
               const isActive = currentIndex === idx;
+              const isNonStandard = !isStandardType(q);
+              // 第一個非標準題前插入分隔標籤
+              const prevQ = questions[idx - 1];
+              const showPart2Label = isNonStandard && (idx === 0 || isStandardType(prevQ));
+              // 第一題前插入第一部分標籤
+              const showPart1Label = idx === 0 && isStandardType(q);
               
               let btnClass = styles.gridBtn;
               if (isActive) btnClass += ` ${styles.gridActive}`;
               else if (status === 'answered') btnClass += ` ${styles.gridAnswered}`;
               else if (status === 'selected') btnClass += ` ${styles.gridSelected}`;
+              if (isNonStandard) btnClass += ` ${styles.gridNonStandard}`;
               
               return (
-                <button
-                  key={q._id}
-                  className={btnClass}
-                  onClick={() => setCurrentIndex(idx)}
-                >
-                  {idx + 1}
-                  {isMarked && <span className={styles.markerBadge}>★</span>}
-                </button>
+                <React.Fragment key={q._id}>
+                  {showPart1Label && (
+                    <div className={styles.navSectionLabel}>第一部分</div>
+                  )}
+                  {showPart2Label && (
+                    <div className={styles.navSectionLabel} style={{ color: '#3b82f6', borderColor: '#bfdbfe', background: '#eff6ff' }}>第二部分</div>
+                  )}
+                  <button
+                    className={btnClass}
+                    onClick={() => setCurrentIndex(idx)}
+                    title={`第 ${idx + 1} 題 ${isNonStandard ? '(題組/填空/簡答)' : ''}`}
+                  >
+                    {idx + 1}
+                    {isMarked && <span className={styles.markerBadge}>★</span>}
+                  </button>
+                </React.Fragment>
               );
             })}
           </div>
@@ -360,6 +375,38 @@ const ExamRenderCore = ({
                 );
               })}
             </div>
+
+            {/* ── 第一部分結束 → 第二部分引導橫幅 ── */}
+            {questions.filter(q => !isStandardType(q)).length > 0 && (
+              <div className={styles.sectionTransitionBanner}>
+                <div className={styles.sectionTransitionLeft}>
+                  <div className={styles.sectionTransitionCheck}>✓</div>
+                  <div>
+                    <div className={styles.sectionTransitionTitle}>第一部分完成！</div>
+                    <div className={styles.sectionTransitionSub}>
+                      選擇題・複選題・是非題 共 {standardQuestions.length} 題
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.sectionTransitionArrow}>→</div>
+                <div className={styles.sectionTransitionRight}>
+                  <div className={styles.sectionTransitionTitle2}>第二部分</div>
+                  <div className={styles.sectionTransitionSub}>
+                    題組・填空・簡答 共 {questions.filter(q => !isStandardType(q)).length} 題
+                  </div>
+                  <button
+                    className={styles.sectionTransitionBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const firstNonStandardIdx = questions.findIndex(q => !isStandardType(q));
+                      if (firstNonStandardIdx !== -1) setCurrentIndex(firstNonStandardIdx);
+                    }}
+                  >
+                    前往第二部分作答 →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* 專注單題作答模式 (題組、填空、簡答) */
