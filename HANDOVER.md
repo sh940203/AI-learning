@@ -81,6 +81,7 @@
    - 第 5 批 首頁與訪客：首頁新增核心功能／學習路徑／題庫資源區塊；移除寫死的「陳嘉恩」與大學生假任務，改為統測備考引導任務；登入頁預設「登入」。
    - 第 4 批 手機版：底部 5 分頁導覽列、作答頁單題＋題號面板＋左右滑動切題、首頁「繼續作答」卡與本週行事曆、AI 導師歷史對話抽屜、錯題頁三分段、測驗中心卡片列、登入頁表單置頂。**桌機版版面不變。**
 
+   - **首頁 logo 開場動畫**（`components/welcome/LogoIntro.jsx`、`LogoMark.jsx`、`LogoSignal.jsx`、`logoPaths.js`）：以 `logo.png` 描出的 SVG 線稿分段描繪（電路→盾牌→箭頭），約 2.9 秒後換成 PNG 並縮進主視覺卡片；之後卡片 logo 每 6 秒有光點沿電路跑到箭頭。同一次瀏覽器只播一次，記在 `sessionStorage` 的 `homeIntroSeen`（與登入頁的 `introSeen` 分開）。線稿座標與 PNG 原始尺寸 1201×1536 對齊，**更換 logo 圖檔時需重描 `logoPaths.js`**。新增 token：`--duration-signal`。
    - **登入頁歡迎動畫**（`components/welcome/BookIntro.jsx`、`BookStage.jsx`）：題目卡片翻飛疊成書的開場（約 3.5 秒，可按略過或 Esc，同一次瀏覽器只播一次，記在 `sessionStorage` 的 `introSeen`；減少動態效果時不播），之後左欄循環翻頁與飛出小卡；系統公告改為頂部「公告」按鈕彈窗。新增 token：`--duration-intro-step`、`--duration-page-flip`、`--duration-card-fly`。
    - **後端 API 用量統計修正**（`services/metricService.js`、`server.js`）：多個請求同時更新當日 `SystemMetric` 會觸發 `VersionError` 而漏算，改用 MongoDB 原子累加 (`$inc`)；已以 50 個併發請求驗證計數無遺漏。
 
