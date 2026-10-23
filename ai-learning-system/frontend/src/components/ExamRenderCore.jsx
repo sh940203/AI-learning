@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Bookmark, Volume2, HelpCircle, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bookmark, Volume2, HelpCircle, FileText, CheckCircle2, AlertCircle, ChevronUp, X } from 'lucide-react';
 import styles from './ExamRenderCore.module.css';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -44,6 +44,13 @@ const ExamRenderCore = ({
   const [localAnswers, setLocalAnswers] = useState({});
   const [zoomImageSrc, setZoomImageSrc] = useState(null);
   const questionRefs = useRef({});
+  // 手機版：一次顯示一題、題號面板、左右滑動切題
+  const isPhone = deviceType === 'phone';
+  const [showQSheet, setShowQSheet] = useState(false);
+  const touchStartRef = useRef(null);
+  const prevIndexRef = useRef(currentIndex);
+  const slideDir = currentIndex >= prevIndexRef.current ? 'next' : 'prev';
+  useEffect(() => { prevIndexRef.current = currentIndex; }, [currentIndex]);
 
   // 處理管理員預覽時的本地點擊狀態，維持即時預覽高質感互動
   const answers = isPreview ? localAnswers : selectedAnswers;
@@ -123,13 +130,13 @@ const ExamRenderCore = ({
 
   // 自動平滑滾動定位至標準題位置
   useEffect(() => {
-    if (activeIsStandard && activeQuestion && questionRefs.current[activeQuestion._id]) {
+    if (!isPhone && activeIsStandard && activeQuestion && questionRefs.current[activeQuestion._id]) {
       questionRefs.current[activeQuestion._id].scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
     }
-  }, [currentIndex, activeIsStandard, activeQuestion]);
+  }, [currentIndex, activeIsStandard, activeQuestion, isPhone]);
 
   // 圖片點擊放大預覽 (Click to Zoom Lightbox)
   useEffect(() => {
@@ -186,8 +193,26 @@ const ExamRenderCore = ({
   const totalSelected = questions.filter(q => getQStatus(q) === 'selected').length;
   const totalUnanswered = questions.length - totalAnswered - totalSelected;
 
+  // 手機版左右滑動切題：水平位移 > 60px 且明顯大於垂直位移才算滑動，避免與上下捲動衝突
+  const handleTouchStart = (e) => {
+    if (!isPhone) return;
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isPhone || !touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1));
+    else setCurrentIndex(prev => Math.max(0, prev - 1));
+  };
+
   return (
-    <div className={`${styles.coreWrapper} ${styles[deviceType]}`}>
+    <div className={`${styles.coreWrapper} ${styles[deviceType]} ${!isPreview ? styles.live : ''}`}>
       {/* 左欄題號面板 (僅在電腦版寬度顯示) */}
       {deviceType === 'desktop' && (
         <div className={styles.navigatorCol}>
@@ -254,9 +279,9 @@ const ExamRenderCore = ({
       )}
 
       {/* 右欄主作答區 */}
-      <div className={styles.contentCol}>
-        {/* 手機/平板頂部控制項：題號下拉選單與計數 */}
-        {deviceType !== 'desktop' && (
+      <div className={styles.contentCol} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        {/* 平板頂部控制項：題號下拉選單與計數 (手機改用底部題號面板) */}
+        {deviceType === 'tablet' && (
           <div className={styles.mobileNavHeader}>
             <div className={styles.selectWrapper}>
               <select 
@@ -286,13 +311,16 @@ const ExamRenderCore = ({
         {/* 雙重版面動態切換：標準題列表 VS 專注題 */}
         {activeIsStandard ? (
           <div className={styles.scrollContainer}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionBadge}>第一部分</span>
-              <h3>選擇題、複選題、是非題 (一頁到底捲動模式)</h3>
-            </div>
+            {!isPhone && (
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionBadge}>第一部分</span>
+                <h3>選擇題、複選題、是非題 (一頁到底捲動模式)</h3>
+              </div>
+            )}
 
             <div className={styles.scrollList}>
-              {standardQuestions.map((q, sIdx) => {
+              {/* 手機一次只顯示目前這一題 */}
+              {standardQuestions.filter(q => !isPhone || q._id === activeQuestion?._id).map((q, sIdx) => {
                 const globalIndex = questions.findIndex(item => item._id === q._id);
                 const qAns = answers[q._id] || { selectedOptions: [] };
                 const isMarked = markedQuestions.includes(q._id);
@@ -301,7 +329,8 @@ const ExamRenderCore = ({
                   <div
                     key={q._id}
                     ref={el => questionRefs.current[q._id] = el}
-                    className={`${styles.questionCard} ${currentIndex === globalIndex ? styles.activeCard : ''}`}
+                    className={`${styles.questionCard} ${currentIndex === globalIndex ? styles.activeCard : ''} ${isPhone ? styles.phoneCard : ''}`}
+                    data-slide={isPhone ? slideDir : undefined}
                     onClick={() => setCurrentIndex(globalIndex)}
                   >
                     <div className={styles.cardHeader}>
@@ -371,8 +400,8 @@ const ExamRenderCore = ({
               })}
             </div>
 
-            {/* ── 第一部分結束 → 第二部分引導橫幅 ── */}
-            {questions.filter(q => !isStandardType(q)).length > 0 && (
+            {/* ── 第一部分結束 → 第二部分引導橫幅 (手機版只在最後一題標準題後顯示) ── */}
+            {questions.filter(q => !isStandardType(q)).length > 0 && (!isPhone || activeQuestion?._id === standardQuestions.at(-1)?._id) && (
               <div className={styles.sectionTransitionBanner}>
                 <div className={styles.sectionTransitionLeft}>
                   <div className={styles.sectionTransitionCheck}>✓</div>
@@ -534,11 +563,17 @@ const ExamRenderCore = ({
             >
               ← 上一題
             </button>
-            <span className={styles.footerProgress}>
-              第 {currentIndex + 1} 題 / 共 {questions.length} 題
-            </span>
+            {isPhone ? (
+              <button className={`${styles.footerNavBtn} ${styles.footerSheetBtn}`} onClick={() => setShowQSheet(true)}>
+                題號 {currentIndex + 1} / {questions.length} <ChevronUp size={14} />
+              </button>
+            ) : (
+              <span className={styles.footerProgress}>
+                第 {currentIndex + 1} 題 / 共 {questions.length} 題
+              </span>
+            )}
             <button
-              className={styles.footerNavBtn}
+              className={`${styles.footerNavBtn} ${isPhone ? styles.footerNextBtn : ''}`}
               disabled={currentIndex === questions.length - 1}
               onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
             >
@@ -547,6 +582,52 @@ const ExamRenderCore = ({
           </div>
         )}
       </div>
+
+      {/* 手機版題號面板 (底部滑出) */}
+      {isPhone && showQSheet && (
+        <div className={styles.qSheetOverlay} onClick={() => setShowQSheet(false)}>
+          <div className={styles.qSheet} onClick={e => e.stopPropagation()} role="dialog" aria-label="題號面板">
+            <div className={styles.qSheetGrab} />
+            <div className={styles.qSheetHeader}>
+              <strong>題號</strong>
+              <span className={styles.qSheetStats}>
+                <span className={styles.dotGreen}></span> 已答 {totalAnswered}
+                <span className={styles.dotGrey}></span> 未答 {totalUnanswered + totalSelected}
+              </span>
+              <button className={styles.qSheetClose} onClick={() => setShowQSheet(false)} aria-label="關閉題號面板">
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.qSheetGrid}>
+              {questions.map((q, idx) => {
+                const status = getQStatus(q);
+                let btnClass = styles.gridBtn;
+                if (currentIndex === idx) btnClass += ` ${styles.gridActive}`;
+                else if (status === 'answered') btnClass += ` ${styles.gridAnswered}`;
+                else if (status === 'selected') btnClass += ` ${styles.gridSelected}`;
+                return (
+                  <button
+                    key={q._id}
+                    className={btnClass}
+                    onClick={() => { setCurrentIndex(idx); setShowQSheet(false); }}
+                  >
+                    {idx + 1}
+                    {markedQuestions.includes(q._id) && <span className={styles.markerBadge}>★</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {!isPreview && (
+              <button
+                className={styles.qSheetSubmit}
+                onClick={() => { setShowQSheet(false); onToggleMark('submit'); }}
+              >
+                交卷{totalAnswered < questions.length ? `（尚有 ${questions.length - totalAnswered} 題未完成）` : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 圖片點擊放大高質感 Lightbox 彈窗 */}
       {zoomImageSrc && (

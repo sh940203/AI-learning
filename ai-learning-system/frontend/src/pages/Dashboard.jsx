@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, FileText, PlaySquare, FileCode, ExternalLink, Bot, LogIn } from 'lucide-react';
+import { Lightbulb, FileText, PlaySquare, FileCode, ExternalLink, Bot, LogIn, PenTool, ArrowRight } from 'lucide-react';
 import TaskTimeline from '../components/TaskTimeline';
 import CalendarWidget from '../components/CalendarWidget';
+import WeekStrip from '../components/WeekStrip';
+import useIsMobile from '../hooks/useIsMobile';
 import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
@@ -113,6 +115,9 @@ const Dashboard = () => {
   const [dateStr, setDateStr] = useState('');
   const [events, setEvents] = useState(loadInitialEvents);
   const [recentResources, setRecentResources] = useState([]);
+  // 最近一份尚未交卷的考卷 (首頁「繼續作答」卡)
+  const [inProgressExam, setInProgressExam] = useState(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
@@ -159,6 +164,7 @@ const Dashboard = () => {
           if (data.success && data.data) {
             const sorted = data.data.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
             setRecentResources(sorted.slice(0, 3));
+            setInProgressExam(sorted.find(p => p.status === 'in_progress' && p.examId) || null);
           }
         }
       } catch (err) {
@@ -190,6 +196,26 @@ const Dashboard = () => {
           </div>
           <button className={styles.guestBannerBtn} onClick={() => navigate('/login')}>
             <LogIn size={15} /> 登入 / 註冊
+          </button>
+        </div>
+      )}
+
+      {/* 繼續作答：通勤時打開首頁即可接著寫 */}
+      {user && inProgressExam && (
+        <div className={styles.continueCard}>
+          <div className={styles.continueIcon}><PenTool size={18} /></div>
+          <div className={styles.continueInfo}>
+            <span className={styles.continueLabel}>繼續作答</span>
+            <strong>{inProgressExam.examTitle || '未命名考卷'}</strong>
+            <div className={styles.continueProgress}>
+              <div className={styles.continueTrack}>
+                <div className={styles.continueFill} style={{ width: `${inProgressExam.progressRate || 0}%` }} />
+              </div>
+              <span>已完成 {inProgressExam.progressRate || 0}%</span>
+            </div>
+          </div>
+          <button className={styles.continueBtn} onClick={() => navigate(`/tests/take/${inProgressExam.examId}`)}>
+            繼續 <ArrowRight size={15} />
           </button>
         </div>
       )}
@@ -233,7 +259,12 @@ const Dashboard = () => {
         {/* Right Column */}
         <div className={styles.rightCol}>
           <div className={`${styles.card} ${styles.fullHeight}`}>
-            <CalendarWidget events={events} setEvents={setEvents} />
+            {/* 手機版改用「本週」橫條，月曆在小螢幕上太擠 */}
+            {isMobile ? (
+              <WeekStrip events={events} />
+            ) : (
+              <CalendarWidget events={events} setEvents={setEvents} />
+            )}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { fetchExamById, updateExamProgress, fetchUserExamProgress } from '../ser
 import ExamRenderCore from '../components/ExamRenderCore';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import { useAuth } from '../context/AuthContext';
+import useIsMobile from '../hooks/useIsMobile';
 import styles from './TakeExam.module.css';
 
 const TakeExam = () => {
@@ -13,6 +14,7 @@ const TakeExam = () => {
   const { user } = useAuth();
   // 訪客模式：未登入可作答，但無法儲存進度與交卷
   const isGuest = !user;
+  const isMobile = useIsMobile();
 
   const [examData, setExamData] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
@@ -384,6 +386,9 @@ const TakeExam = () => {
       {/* 沉浸式頂部控制列 */}
       <header className={styles.examHeader}>
         <div className={styles.headerLeft}>
+          <button className={styles.mobileBackBtn} onClick={() => navigate('/tests')} aria-label="返回測驗中心">
+            <ArrowLeft size={18} />
+          </button>
           <h1 className={styles.examTitle}>{examData?.title}</h1>
         </div>
 
@@ -452,7 +457,7 @@ const TakeExam = () => {
           onToggleMark={handleToggleMark}
           onReportError={handleReportError}
           isPreview={false}
-          deviceType="desktop"
+          deviceType={isMobile ? 'phone' : 'desktop'}
         />
       </main>
 

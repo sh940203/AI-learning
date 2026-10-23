@@ -361,3 +361,29 @@
     padding: var(--spacing-lg);
   }
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 40px var(--spacing-md);
+  }
+
+  .mainTitle {
+    font-size: 26px;
+  }
+
+  .subtitle {
+    font-size: var(--text-sm);
+  }
+
+  .heroSection {
+    margin-bottom: 40px;
+  }
+
+  .infoSection {
+    margin-bottom: 40px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+  }
+}

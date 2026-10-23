@@ -308,3 +308,153 @@
   background-color: var(--color-primary-hover);
   box-shadow: var(--shadow-md);
 }
+
+/* ── 繼續作答卡 ── */
+.continueCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-main);
+  box-shadow: var(--shadow-sm);
+  animation: continueIn var(--duration-slow) var(--ease-out);
+}
+
+.continueIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.continueInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.continueLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.continueInfo strong {
+  font-size: var(--text-sm);
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.continueProgress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.continueTrack {
+  flex: 1;
+  max-width: 200px;
+  height: 5px;
+  border-radius: 3px;
+  background-color: var(--color-bg-hover);
+  overflow: hidden;
+}
+
+.continueFill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+.continueBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+}
+
+.continueBtn:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+@keyframes continueIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ══════════════ 手機版 (≤ 768px) ══════════════ */
+@media (max-width: 768px) {
+  .container {
+    gap: var(--spacing-md);
+  }
+
+  .welcomeHeader {
+    margin-bottom: 0;
+  }
+
+  .welcomeHeader h1 {
+    font-size: var(--text-h2);
+  }
+
+  .welcomeHeader p {
+    font-size: var(--text-sm);
+  }
+
+  .mainGrid,
+  .bottomGrid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  /* 行事曆移到任務時間軸上方，先看本週再看細項 */
+  .rightCol {
+    order: -1;
+  }
+
+  .card {
+    padding: var(--spacing-md);
+  }
+
+  .guestBanner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--spacing-md);
+  }
+
+  .guestBannerBtn {
+    justify-content: center;
+  }
+
+  .continueCard {
+    padding: var(--spacing-md);
+  }
+}

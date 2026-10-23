@@ -308,7 +308,7 @@ const Login = () => {
       </main>
 
       <footer className={styles.footer}>
-        <p className={styles.footerCopy}>© 2024 AI智能輔助自主學習系統</p>
+        <p className={styles.footerCopy}>© {new Date().getFullYear()} 靜宜大學資訊管理學系 畢業專題・AI智能輔助自主學習系統</p>
         <div className={styles.footerLinks}>
           <a href="#">使用條款</a>
           <a href="#">隱私政策</a>

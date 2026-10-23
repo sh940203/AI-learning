@@ -1,4 +1,5 @@
 .coreWrapper {
+  position: relative;
   display: flex;
   height: 100%;
   width: 100%;
@@ -965,4 +966,169 @@
 
 .sectionTransitionBtn:active {
   transform: translateY(0);
+}
+
+/* ══════════════ 手機版作答 (deviceType="phone") ══════════════ */
+/* 正式作答時不需要預覽用的裝置外框 */
+.live.phone,
+.live.tablet {
+  max-width: none;
+  border: none;
+  border-radius: 0;
+}
+
+.phone .scrollList {
+  padding-right: 0;
+}
+
+.phone .optionItem {
+  padding: 14px var(--spacing-md);
+}
+
+.phone .optionText {
+  font-size: 15px;
+}
+
+/* 切題時依方向滑入 */
+.phoneCard {
+  cursor: default;
+  animation: phoneSlideNext var(--duration-slow) var(--ease-out);
+}
+
+.phoneCard[data-slide='prev'] {
+  animation-name: phoneSlidePrev;
+}
+
+@keyframes phoneSlideNext {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes phoneSlidePrev {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.phone .footerNav {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md) calc(var(--spacing-sm) + env(safe-area-inset-bottom));
+  background-color: var(--color-bg-main);
+}
+
+.phone .footerNavBtn {
+  padding: 11px 8px;
+  text-align: center;
+}
+
+.footerSheetBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background-color: var(--color-bg-secondary) !important;
+  font-weight: 600 !important;
+}
+
+.footerNextBtn {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+/* 題號面板 */
+.qSheetOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background-color: rgba(15, 23, 42, 0.35);
+  border-radius: inherit;
+  overflow: hidden;
+  animation: qSheetFade var(--duration-base) var(--ease-out);
+}
+
+.qSheet {
+  width: 100%;
+  background-color: var(--color-bg-main);
+  border-radius: 18px 18px 0 0;
+  padding: 10px var(--spacing-md) calc(var(--spacing-md) + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.15);
+  animation: qSheetUp var(--duration-slow) var(--ease-out);
+}
+
+.qSheetGrab {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--color-border);
+  margin: 0 auto 10px;
+}
+
+.qSheetHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.qSheetStats {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.qSheetStats .dotGrey {
+  margin-left: 8px;
+}
+
+.qSheetClose {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.qSheetGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--spacing-sm);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.qSheetSubmit {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes qSheetFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes qSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }

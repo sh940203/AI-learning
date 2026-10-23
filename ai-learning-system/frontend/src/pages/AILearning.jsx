@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Paperclip, Send, RefreshCw, MessageSquare, Plus, X, Pencil, Trash2, Check, Copy, CheckCheck, Sparkles } from 'lucide-react';
+import { Paperclip, Send, RefreshCw, MessageSquare, Plus, X, Pencil, Trash2, Check, Copy, CheckCheck, Sparkles, History } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -91,6 +91,8 @@ const AILearning = () => {
   const [isLoading, setIsLoading] = useState(false);
   // AI 回覆串流中 (第一包資料到達後 → 完成前)，串流期間不顯示評價列
   const [isStreaming, setIsStreaming] = useState(false);
+  // 手機版：歷史對話清單收在左側抽屜
+  const [showHistory, setShowHistory] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [pdfText, setPdfText] = useState('');
   const [pdfName, setPdfName] = useState('');
@@ -145,6 +147,7 @@ const AILearning = () => {
   };
   
   const loadSession = async (id) => {
+    setShowHistory(false);
     try {
       const res = await fetch(`http://localhost:5001/api/ai/sessions/${id}`, {
         headers: { 'X-Device-Id': deviceId }
@@ -161,6 +164,7 @@ const AILearning = () => {
   };
   
   const handleNewChat = () => {
+    setShowHistory(false);
     setActiveSessionId(null);
     setMessages([{
       role: 'model',
@@ -407,8 +411,11 @@ const AILearning = () => {
 
   return (
     <div className={styles.container}>
+      {/* 手機版：抽屜開啟時的背景遮罩 */}
+      {showHistory && <div className={styles.historyBackdrop} onClick={() => setShowHistory(false)} />}
+
       {/* Sidebar for History */}
-      <div className={styles.sidebar}>
+      <div className={`${styles.sidebar} ${showHistory ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <button className={styles.newChatBtn} onClick={handleNewChat}>
             <Plus size={18} /> 新增對話
@@ -472,6 +479,9 @@ const AILearning = () => {
       {/* Main Chat Area */}
       <div className={styles.mainArea}>
         <div className={styles.chatHeader}>
+          <button className={styles.historyToggle} onClick={() => setShowHistory(true)} aria-label="開啟歷史對話">
+            <History size={16} /> 歷史對話
+          </button>
           <div className={styles.chatTitleGroup}>
             <div className={styles.aiAvatar}>AI</div>
             <div className={styles.chatTitleInfo}>

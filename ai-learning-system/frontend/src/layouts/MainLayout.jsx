@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, LogIn, Bell, Search, Menu, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, LogIn, Bell, Search, Menu, AlertTriangle, Target, UserRound, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import styles from './MainLayout.module.css';
@@ -11,6 +11,16 @@ const MainLayout = () => {
   const { user, logout } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSystemFeedback, setShowSystemFeedback] = useState(false);
+  // 手機版「我的」選單 (底部滑出)
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // 手機版底部導覽列項目
+  const mobileTabs = [
+    { to: '/dashboard', icon: LayoutDashboard, label: '首頁' },
+    { to: '/tests', icon: PenTool, label: '測驗' },
+    { to: '/error-analysis', icon: Target, label: '錯題' },
+    { to: '/ai-learning', icon: BrainCircuit, label: 'AI 導師' }
+  ];
 
   const handleLogout = () => {
     logout();
@@ -103,6 +113,8 @@ const MainLayout = () => {
       {/* Main Content */}
       <div className={styles.mainArea}>
         <header className={styles.header}>
+          {/* 手機版：頂部只留品牌名稱 */}
+          <span className={styles.mobileBrand} onClick={() => navigate('/dashboard')}>MIND SYNC</span>
           <div className={styles.searchBar}>
             <Search size={18} color="var(--color-text-muted)" />
             <input type="text" placeholder="搜尋課程、檔案或筆記..." />
@@ -128,6 +140,78 @@ const MainLayout = () => {
           </div>
         </main>
       </div>
+
+      {/* 手機版底部導覽列 (寬度 ≤ 768px 才顯示) */}
+      <nav className={styles.bottomNav} aria-label="主要導覽">
+        {mobileTabs.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) => `${styles.bottomNavItem} ${isActive ? styles.bottomNavActive : ''}`}
+          >
+            <span className={styles.bottomNavIcon}><Icon size={20} /></span>
+            <span>{label}</span>
+          </NavLink>
+        ))}
+        <button
+          className={`${styles.bottomNavItem} ${showMobileMenu ? styles.bottomNavActive : ''}`}
+          onClick={() => setShowMobileMenu(true)}
+        >
+          <span className={styles.bottomNavIcon}><UserRound size={20} /></span>
+          <span>我的</span>
+        </button>
+      </nav>
+
+      {/* 手機版「我的」選單 */}
+      {showMobileMenu && (
+        <div className={styles.sheetOverlay} onClick={() => setShowMobileMenu(false)}>
+          <div className={styles.sheet} onClick={e => e.stopPropagation()} role="dialog" aria-label="我的">
+            <div className={styles.sheetGrab} />
+            <div className={styles.sheetHeader}>
+              {user ? (
+                <div className={styles.sheetProfile}>
+                  <div className={styles.sheetAvatar}>{user.name.charAt(0)}</div>
+                  <div>
+                    <div className={styles.name}>{user.name}</div>
+                    <div className={styles.email}>{user.email}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.sheetProfile}>
+                  <div className={styles.sheetAvatar}><UserRound size={18} /></div>
+                  <div>
+                    <div className={styles.name}>訪客</div>
+                    <div className={styles.email}>登入後即可保存學習紀錄</div>
+                  </div>
+                </div>
+              )}
+              <button className={styles.sheetClose} onClick={() => setShowMobileMenu(false)} aria-label="關閉">
+                <X size={18} />
+              </button>
+            </div>
+            <div className={styles.sheetList}>
+              <button className={styles.sheetItem} onClick={() => { setShowMobileMenu(false); navigate('/settings'); }}>
+                <Settings size={18} /> 個人設定
+              </button>
+              <button className={styles.sheetItem} onClick={() => { setShowMobileMenu(false); setShowSystemFeedback(true); }}>
+                <AlertTriangle size={18} /> 錯誤回饋
+              </button>
+              <button className={styles.sheetItem}>
+                <HelpCircle size={18} /> 協助中心
+              </button>
+              {user ? (
+                <button className={`${styles.sheetItem} ${styles.sheetItemDanger}`} onClick={() => { setShowMobileMenu(false); handleLogout(); }}>
+                  <LogOut size={18} /> 登出
+                </button>
+              ) : (
+                <button className={`${styles.sheetItem} ${styles.sheetItemPrimary}`} onClick={() => { setShowMobileMenu(false); navigate('/login'); }}>
+                  <LogIn size={18} /> 登入 / 註冊
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 系統錯誤回饋彈窗 */}
       {showSystemFeedback && (

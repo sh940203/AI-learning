@@ -1001,3 +1001,111 @@
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
 }
+
+/* ══════════════ 手機版 (≤ 768px) ══════════════ */
+.mobileTabs {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 改為整頁捲動，不再固定雙欄高度 */
+  .pageWrapper {
+    height: auto;
+  }
+
+  .subHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .subHeaderLeft {
+    gap: var(--spacing-sm);
+  }
+
+  .pageTitle {
+    font-size: 18px;
+  }
+
+  .searchBox {
+    width: 100%;
+  }
+
+  .controlBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .controlLeft h2 {
+    font-size: 18px;
+  }
+
+  .controlRight {
+    gap: var(--spacing-sm);
+  }
+
+  /* 考卷/科目選單獨佔一行，其餘按鈕排在下方 */
+  .examSelect {
+    order: -1;
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .mobileTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-hover);
+  }
+
+  .mobileTab {
+    padding: 8px 0;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+  }
+
+  .mobileTabActive {
+    background-color: var(--color-bg-main);
+    color: var(--color-text-main);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mainLayout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    overflow: visible;
+  }
+
+  .leftPane,
+  .rightPane {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  /* 依分段顯示對應區塊 */
+  .mainLayout[data-mobile-tab='wrong'] .rightPane,
+  .mainLayout:not([data-mobile-tab='wrong']) .leftPane,
+  .mainLayout[data-mobile-tab='mastery'] .widgetPractice,
+  .mainLayout[data-mobile-tab='practice'] .widgetMastery {
+    display: none;
+  }
+
+  .rightPane {
+    animation: cardEnter var(--duration-slow) var(--ease-out);
+  }
+
+  .wrongCard {
+    padding: var(--spacing-md);
+  }
+}

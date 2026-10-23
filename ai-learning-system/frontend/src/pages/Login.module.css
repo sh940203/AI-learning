@@ -482,3 +482,63 @@
 .tag系統 { background-color: #e0e7ff; color: #4f46e5; }
 .tag更新 { background-color: #dcfce7; color: #16a34a; }
 .tag一般 { background-color: #f3f4f6; color: #4b5563; }
+
+/* ══════════════ 手機版 (≤ 768px) ══════════════ */
+@media (max-width: 768px) {
+  .header {
+    height: 56px;
+    padding: 0 var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .logoGroup {
+    min-width: 0;
+  }
+
+  .brand {
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .headerRight {
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+  }
+
+  .outlineBtn,
+  .primaryBtn {
+    white-space: nowrap;
+    padding: 6px 12px;
+  }
+
+  /* 登入表單放最上面，公告移到下方 */
+  .main {
+    flex-direction: column;
+  }
+
+  .formPanel {
+    order: -1;
+    padding: var(--spacing-lg) var(--spacing-md);
+    align-items: flex-start;
+  }
+
+  .formWrapper {
+    padding: var(--spacing-lg);
+  }
+
+  .announcementPanel {
+    flex: none;
+    padding: var(--spacing-lg) var(--spacing-md);
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg) var(--spacing-md);
+    text-align: center;
+  }
+}

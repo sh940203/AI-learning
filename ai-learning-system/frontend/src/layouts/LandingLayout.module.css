@@ -106,3 +106,32 @@
 .footerRight a:hover {
   color: var(--color-primary);
 }
+
+/* ══════════════ 手機版 (≤ 768px) ══════════════ */
+@media (max-width: 768px) {
+  .header {
+    height: 56px;
+    padding: 0 var(--spacing-md);
+  }
+
+  /* 區塊錨點連結在手機上收起，首頁往下捲即可看到 */
+  .navLinks {
+    display: none;
+  }
+
+  .brand {
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
+  .primaryBtn {
+    white-space: nowrap;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    text-align: center;
+  }
+}

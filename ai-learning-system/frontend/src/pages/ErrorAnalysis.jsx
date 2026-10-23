@@ -96,6 +96,9 @@ const ErrorAnalysis = () => {
   const [quizGenerating, setQuizGenerating] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
 
+  // 手機版分段：錯題 / 掌握度 / 強化練習 (桌機版雙欄同時顯示，不受影響)
+  const [mobileTab, setMobileTab] = useState('wrong');
+
   // 掌握度圖表動畫觸發
   const masteryRef = useRef(null);
   // 錯題卡片 DOM 參照 (供右上角「AI 錯題分析」滾動定位)
@@ -330,8 +333,27 @@ const ErrorAnalysis = () => {
         </div>
       </div>
 
+      {/* ─ 手機版分段切換 ─ */}
+      <div className={styles.mobileTabs} role="tablist">
+        {[
+          { key: 'wrong', label: `錯題${wrongQuestions.length ? ` ${wrongQuestions.length}` : ''}` },
+          { key: 'mastery', label: '掌握度' },
+          { key: 'practice', label: '強化練習' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            role="tab"
+            aria-selected={mobileTab === tab.key}
+            className={`${styles.mobileTab} ${mobileTab === tab.key ? styles.mobileTabActive : ''}`}
+            onClick={() => setMobileTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* ─ 主體雙欄佈局 ─ */}
-      <div className={styles.mainLayout}>
+      <div className={styles.mainLayout} data-mobile-tab={mobileTab}>
         {/* ══════════════ 左欄：錯題清單與詳細解析 ══════════════ */}
         <div className={styles.leftPane}>
           {/* 知識點標籤過濾器 */}
@@ -544,7 +566,7 @@ const ErrorAnalysis = () => {
         {/* ══════════════ 右欄：派題 + 掌握度圖表 + 知識點路徑 ══════════════ */}
         <div className={styles.rightPane}>
           {/* ── 確保觀念生成 ── */}
-          <div className={styles.widgetCard}>
+          <div className={`${styles.widgetCard} ${styles.widgetPractice}`}>
             <div className={styles.widgetHeader}>
               <Zap size={15} className={styles.widgetIcon} />
               <h3>確保觀念生成題</h3>
@@ -608,7 +630,7 @@ const ErrorAnalysis = () => {
           </div>
 
           {/* ── 觀念覆蓋掌握度 ── */}
-          <div className={styles.widgetCard} ref={masteryRef}>
+          <div className={`${styles.widgetCard} ${styles.widgetMastery}`} ref={masteryRef}>
             <div className={styles.widgetHeader}>
               <BarChart2 size={15} className={styles.widgetIcon} />
               <h3>觀念覆蓋掌握度</h3>
@@ -643,7 +665,7 @@ const ErrorAnalysis = () => {
 
           {/* ── 相關知識點路徑 ── */}
           {allTags.length > 0 && (
-            <div className={styles.widgetCard}>
+            <div className={`${styles.widgetCard} ${styles.widgetMastery}`}>
               <div className={styles.widgetHeader}>
                 <Folder size={15} className={styles.widgetIcon} />
                 <h3>相關知識點路徑</h3>
