@@ -1,8 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Megaphone, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Megaphone, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import BookIntro from '../components/welcome/BookIntro';
+import BookStage from '../components/welcome/BookStage';
 import styles from './Login.module.css';
+
+const INTRO_SEEN_KEY = 'introSeen';
+
+// 歡迎動畫是否要播放：同一次開啟瀏覽器只播一次；系統設定「減少動態效果」時不播
+const shouldPlayIntro = () => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  try {
+    return sessionStorage.getItem(INTRO_SEEN_KEY) !== '1';
+  } catch {
+    return false;
+  }
+};
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'：回訪學生多為登入，預設停在登入
@@ -17,6 +31,24 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [announcementsData, setAnnouncementsData] = useState([]);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
+
+  // 歡迎動畫：playing = 開場播放中；revealed = 登入卡已滑入
+  const [reduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [introPlaying, setIntroPlaying] = useState(shouldPlayIntro);
+  const [introPlayed] = useState(introPlaying);
+  const [formRevealed, setFormRevealed] = useState(!introPlaying);
+  const stageBookRef = useRef(null);
+
+  const handleIntroReveal = useCallback(() => setFormRevealed(true), []);
+  const handleIntroFinish = useCallback(() => {
+    try {
+      sessionStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {
+      // 無法寫入 sessionStorage (如無痕模式限制) 時，下次仍會播放，不影響登入
+    }
+    setIntroPlaying(false);
+  }, []);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -98,6 +130,10 @@ const Login = () => {
 
   return (
     <div className={styles.container}>
+      {introPlaying && (
+        <BookIntro targetRef={stageBookRef} onReveal={handleIntroReveal} onFinish={handleIntroFinish} />
+      )}
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logoGroup}>
@@ -105,60 +141,65 @@ const Login = () => {
           <span className={styles.brand}>AI智能輔助自主學習系統</span>
         </div>
         <div className={styles.headerRight}>
+          <button className={styles.announceBtn} onClick={() => setShowAnnouncements(true)} aria-label="系統公告">
+            <Megaphone size={16} />
+            <span className={styles.announceLabel}>公告</span>
+            {announcementsData.length > 0 && <span className={styles.announceCount}>{announcementsData.length}</span>}
+          </button>
           <button className={styles.outlineBtn} onClick={() => { setActiveTab('login'); setErrors({}); }}>登入</button>
           <button className={styles.primaryBtn} onClick={() => { setActiveTab('register'); setErrors({}); }}>註冊</button>
         </div>
       </header>
 
       <main className={styles.main}>
-        {/* Left: Announcements */}
-        <div className={styles.announcementPanel}>
-          <h2 className={styles.panelTitle}>
-            <Megaphone size={24} /> 系統公告
-          </h2>
-
-          <div className={styles.announcementList}>
-            {announcementsData.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>目前沒有公告</p>
-            ) : (
-              announcementsData.slice(0, 4).map((item) => (
-                <div 
-                  key={item._id} 
-                  className={styles.announcementCard} 
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setSelectedAnnouncement(item)}
-                >
-                  <div className={styles.cardHeader}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {item.isPinned && <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 'bold' }}>📌</span>}
-                      <span className={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    {item.tag && <span className={`${styles.tag} ${styles['tag' + item.tag] || styles.tag一般}`}>{item.tag}</span>}
-                  </div>
-                  <h3 className={styles.cardTitle}>{item.title}</h3>
-                  {item.content && (
-                    <p className={styles.cardContent}>
-                      {item.content.length > 50 ? (
-                        <>
-                          {item.content.substring(0, 50)}...
-                          <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>更多內容</span>
-                        </>
-                      ) : (
-                        item.content
-                      )}
-                    </p>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-
-          {announcementsData.length > 4 && (
-            <button className={styles.moreBtn}>
-              查看更多公告 <ChevronRight size={16} />
-            </button>
-          )}
+        {/* Left: 歡迎動畫循環畫面 */}
+        <div className={styles.stagePanel}>
+          <BookStage bookRef={stageBookRef} isStatic={reduceMotion} />
         </div>
+
+        {showAnnouncements && (
+          <div className={styles.modalOverlay} onClick={() => setShowAnnouncements(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <h3 className={styles.modalTitle}><Megaphone size={20} /> 系統公告</h3>
+              <div className={styles.announcementList}>
+                {announcementsData.length === 0 ? (
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>目前沒有公告</p>
+                ) : (
+                  announcementsData.map((item) => (
+                    <div 
+                      key={item._id} 
+                      className={styles.announcementCard} 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => { setShowAnnouncements(false); setSelectedAnnouncement(item); }}
+                    >
+                      <div className={styles.cardHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {item.isPinned && <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 'bold' }}>📌</span>}
+                          <span className={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        {item.tag && <span className={`${styles.tag} ${styles['tag' + item.tag] || styles.tag一般}`}>{item.tag}</span>}
+                      </div>
+                      <h3 className={styles.cardTitle}>{item.title}</h3>
+                      {item.content && (
+                        <p className={styles.cardContent}>
+                          {item.content.length > 50 ? (
+                            <>
+                              {item.content.substring(0, 50)}...
+                              <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>更多內容</span>
+                            </>
+                          ) : (
+                            item.content
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <button className={styles.modalCloseBtn} onClick={() => setShowAnnouncements(false)}>關閉</button>
+            </div>
+          </div>
+        )}
 
         {selectedAnnouncement && (
           <div className={styles.modalOverlay} onClick={() => setSelectedAnnouncement(null)}>
@@ -178,7 +219,7 @@ const Login = () => {
 
         {/* Right: Auth Form */}
         <div className={styles.formPanel}>
-          <div className={styles.formWrapper}>
+          <div className={`${styles.formWrapper} ${!formRevealed ? styles.formHidden : introPlayed ? styles.formReveal : ''}`}>
             <div className={styles.formHeader}>
               <h1>開始您的智慧學習之旅</h1>
               <p>您專屬的學術助手</p>

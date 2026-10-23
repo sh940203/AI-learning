@@ -68,24 +68,47 @@
   display: flex;
 }
 
-/* Left Panel */
-.announcementPanel {
-  flex: 0 0 380px;
+/* Left Panel：歡迎動畫循環畫面 (components/welcome/BookStage) */
+.stagePanel {
+  flex: 1;
+  min-width: 0;
   background-color: var(--color-bg-sidebar);
-  padding: 40px;
   border-right: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
 }
 
-.panelTitle {
+/* Header 公告按鈕 (公告改以彈窗列出) */
+.announceBtn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: var(--text-h2);
-  font-weight: 600;
-  margin-bottom: var(--spacing-xl);
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  transition: background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
+}
+
+.announceBtn:hover {
+  background-color: var(--color-bg-hover);
   color: var(--color-text-main);
+}
+
+.announceCount {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .announcementList {
@@ -137,23 +160,9 @@
   line-height: 1.5;
 }
 
-.moreBtn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-  margin-top: auto;
-}
-
 /* Right Panel */
 .formPanel {
-  flex: 1;
+  flex: 0 0 560px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -168,6 +177,22 @@
   border-radius: var(--radius-md);
   padding: 40px;
   background-color: var(--color-bg-main);
+}
+
+.formHidden {
+  opacity: 0;
+}
+
+/* 開場結束後登入卡從右側滑入 (fill-mode 用 backwards，避免殘留 transform 影響 fixed 彈窗定位) */
+.formReveal {
+  animation: formSlideIn var(--duration-intro-step) var(--ease-out) backwards;
+}
+
+@keyframes formSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
 }
 
 .formHeader {
@@ -438,6 +463,9 @@
 }
 
 .modalTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 12px;
@@ -513,26 +541,34 @@
     padding: 6px 12px;
   }
 
-  /* 登入表單放最上面，公告移到下方 */
+  /* 公告按鈕只留圖示與數量 */
+  .announceLabel {
+    display: none;
+  }
+
+  .announceBtn {
+    padding: 6px;
+  }
+
+  /* 書本縮成頂部橫幅，登入表單接在下方 */
   .main {
     flex-direction: column;
   }
 
+  .stagePanel {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
   .formPanel {
-    order: -1;
+    flex: none;
     padding: var(--spacing-lg) var(--spacing-md);
     align-items: flex-start;
   }
 
   .formWrapper {
     padding: var(--spacing-lg);
-  }
-
-  .announcementPanel {
-    flex: none;
-    padding: var(--spacing-lg) var(--spacing-md);
-    border-right: none;
-    border-top: 1px solid var(--color-border);
   }
 
   .footer {

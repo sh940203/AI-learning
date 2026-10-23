@@ -1,0 +1,200 @@
+/* 登入頁左欄：書本循環畫面 */
+.stage {
+  position: relative;
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  padding: var(--spacing-xl);
+  overflow: hidden;
+}
+
+.scene {
+  perspective: 1200px;
+}
+
+/* ── 書本 (BookIntro 也使用同一組尺寸) ── */
+.book {
+  position: relative;
+  width: 320px;
+  height: 210px;
+  transform-style: preserve-3d;
+}
+
+.page {
+  position: absolute;
+  top: 0;
+  width: 160px;
+  height: 210px;
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pageLeft {
+  left: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.pageRight {
+  left: 160px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.pageTitle {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.pageMastery {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.masteryBar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--color-bg-hover);
+  overflow: hidden;
+}
+
+.masteryBar span {
+  display: block;
+  width: 78%;
+  height: 100%;
+  background-color: #22c55e;
+}
+
+.line {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--color-border);
+}
+
+/* 翻動中的書頁：以書脊為軸，從右頁翻到左頁 */
+.flipPage {
+  position: absolute;
+  top: 0;
+  left: 160px;
+  width: 160px;
+  height: 210px;
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transform-origin: left center;
+  animation: pageFlip var(--duration-page-flip) var(--ease-in-out) infinite;
+}
+
+@keyframes pageFlip {
+  0%, 20% { transform: rotateY(0); opacity: 0; }
+  25% { opacity: 1; }
+  60% { transform: rotateY(-180deg); opacity: 1; }
+  70%, 100% { transform: rotateY(-180deg); opacity: 0; }
+}
+
+/* 從書中飛出的題目小卡 */
+.flyCard {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 6px 12px;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-primary);
+  background-color: var(--color-bg-main);
+  border: 1px solid #93c5fd;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+  animation: cardFly var(--duration-card-fly) var(--ease-out) infinite backwards;
+}
+
+@keyframes cardFly {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  12% { opacity: 1; }
+  45% { opacity: 1; transform: translate(calc(-50% + var(--fly-x)), calc(-50% + var(--fly-y))) rotate(var(--fly-r)) scale(1); }
+  60%, 100% { opacity: 0; transform: translate(calc(-50% + var(--fly-x)), calc(-50% + var(--fly-y) - 12px)) rotate(var(--fly-r)) scale(1); }
+}
+
+.tagline {
+  text-align: center;
+}
+
+.tagline h2 {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.tagline p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* 分頁切到背景時暫停 */
+.paused .flipPage,
+.paused .flyCard {
+  animation-play-state: paused;
+}
+
+/* 減少動態效果：只留靜態書本 */
+.static .flipPage,
+.static .flyCard {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flipPage,
+  .flyCard {
+    display: none;
+  }
+}
+
+/* ══════════════ 手機版 (≤ 768px)：書本縮小放頂部、不顯示飛出小卡 ══════════════ */
+@media (max-width: 768px) {
+  .stage {
+    min-height: 0;
+    height: auto;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+  }
+
+  .scene {
+    height: 130px;
+    display: flex;
+    align-items: center;
+  }
+
+  .book {
+    transform: scale(0.6);
+  }
+
+  .flyCard {
+    display: none;
+  }
+
+  .tagline h2 {
+    font-size: var(--text-body);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .tagline p {
+    font-size: var(--text-xs);
+  }
+}

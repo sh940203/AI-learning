@@ -1,0 +1,168 @@
+/* 登入頁歡迎動畫：全螢幕覆蓋層，依 phase class 推進 (start → fly → stack → book → cover → open → leave) */
+.overlay {
+  --spread: 1;
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-secondary);
+  transition: background-color var(--duration-slow) var(--ease-out);
+  cursor: pointer;
+}
+
+.overlay.leave {
+  background-color: transparent;
+}
+
+.skipBtn {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-lg);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.skipBtn:hover {
+  color: var(--color-text-main);
+  background-color: var(--color-bg-hover);
+}
+
+.leave .skipBtn {
+  opacity: 0;
+}
+
+/* ── 題目卡：從畫面外飛入 → 散開 → 疊在中央 ── */
+.questionCard {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 150px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-main);
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform:
+    translate(calc(-50% + var(--card-x) * var(--spread) * 1.8px), calc(-50% + var(--card-y) * var(--spread) * 1.8px))
+    rotate(calc(var(--card-r) * 2deg));
+  transition:
+    transform var(--duration-intro-step) var(--ease-out),
+    opacity var(--duration-slow) var(--ease-out);
+}
+
+.questionCard b {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.questionCard i {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--color-border);
+}
+
+.fly .questionCard {
+  opacity: 1;
+  transform:
+    translate(calc(-50% + var(--card-x) * var(--spread) * 1px), calc(-50% + var(--card-y) * var(--spread) * 1px))
+    rotate(calc(var(--card-r) * 1deg));
+}
+
+.stack .questionCard {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(calc(var(--stack-r) * 1deg));
+}
+
+/* 疊好之後由書本接手 */
+.book .questionCard,
+.cover .questionCard,
+.open .questionCard,
+.leave .questionCard {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+  transition-delay: 0ms !important;
+}
+
+/* ── 書本 ── */
+.scene {
+  perspective: 1200px;
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-intro-step) var(--ease-out);
+}
+
+.book .scene,
+.cover .scene,
+.open .scene,
+.leave .scene {
+  opacity: 1;
+  transform: none;
+}
+
+.bookMove {
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+/* 封面：以書脊為軸，闔上時蓋住右頁 */
+.bookCover {
+  position: absolute;
+  top: 0;
+  left: 160px;
+  width: 160px;
+  height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: var(--shadow-md);
+  transform-origin: left center;
+  transform: rotateY(-180deg);
+  backface-visibility: hidden;
+  transition: transform var(--duration-intro-step) var(--ease-in-out);
+}
+
+.overlay.cover .bookCover {
+  transform: rotateY(0);
+}
+
+.coverIcon {
+  display: flex;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ══════════════ 手機版 (≤ 768px)：卡片飛行距離縮短 ══════════════ */
+@media (max-width: 768px) {
+  .overlay {
+    --spread: 0.45;
+  }
+
+  .questionCard {
+    width: 90px;
+    height: 112px;
+    font-size: 10px;
+  }
+}
