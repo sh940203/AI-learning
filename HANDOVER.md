@@ -16,6 +16,8 @@
 > 2. 後端使用 **Node.js (Express) + MongoDB Atlas (Mongoose)**，搭配 **Google Gemini API (`@google/generative-ai`)**。
 > 3. 本機運作埠號：前端 `http://localhost:5173`，後端 `http://127.0.0.1:5001`（Vite 已設定 `/api` proxy 轉發至 5001）。
 > 4. 請維護程式碼註解、既有架構的一致性，勿更換套件庫或引入非必要的大型相依項。
+> 5. 專案中沒有 `design.md`；樣式一律沿用 `src/styles/variables.css` 的 token。動畫請用 `--duration-*`、`--ease-*`，陰影用 `--shadow-*`，不要另寫秒數與色碼。
+> 6. 手機版斷點統一為 `@media (max-width: 768px)`；JS 端判斷請用 `src/hooks/useIsMobile.js`。新頁面需同時確認桌機與手機（寬 375px）版面。
 
 ---
 
@@ -49,23 +51,35 @@
 │   └── frontend/
 │       ├── src/
 │       │   ├── components/
-│       │   │   ├── ExamRenderCore.jsx       # 核心答題渲染引擎 (支援 LaTeX, 題組分割, 滾動流)
-│       │   │   └── ExamRenderCore.module.css
+│       │   │   ├── ExamRenderCore.jsx       # 核心答題渲染引擎 (支援 LaTeX, 題組分割, 滾動流；phone 模式為單題＋題號面板＋滑動切題)
+│       │   │   ├── ExamRenderCore.module.css
+│       │   │   └── WeekStrip.jsx            # 手機版首頁「本週」行事曆
+│       │   ├── hooks/
+│       │   │   └── useIsMobile.js           # 手機版判斷 (≤ 768px)
 │       │   ├── pages/
 │       │   │   ├── AILearning.jsx           # AI 自主學習導師聊天室
 │       │   │   ├── Tests.jsx                # 考試中心 (歷屆試卷大廳、分卷清單)
 │       │   │   ├── TakeExam.jsx             # 實際考試作答頁面
-│       │   │   └── ErrorAnalysis.jsx        # 錯題分析報告 & 確保觀念生成題
+│       │   │   ├── ErrorAnalysis.jsx        # 錯題分析報告 & 確保觀念生成題
+│       │   │   ├── Dashboard.jsx            # 首頁儀表板 (任務時間軸、繼續作答卡)
+│       │   │   └── Home.jsx                 # 公開首頁 (核心功能／學習路徑／題庫資源)
 │       │   ├── services/
 │       │   │   └── examService.js           # 前端 API 串接服務
 │       │   └── styles/
-│       │       └── variables.css            # 全域色彩與主題變數
+│       │       └── variables.css            # 全域色彩、間距、動畫與陰影 token
 │       └── vite.config.js                   # Vite 配置與 proxy 設定
 ```
 
 ---
 
-## 二、目前進度與近期修改歷史 (截至 2026-10-20)
+## 二、目前進度與近期修改歷史 (截至 2026-10-24)
+
+0. **UI/UX 全面優化（2026-10-24，5 批）**：指導教授反映介面陽春，以「通勤用手機刷題的統測考生」角度走查後改善。
+   - 第 1 批 動畫基礎：動畫 token、換頁淡入過場、按鈕按壓與鍵盤焦點回饋、支援「減少動態效果」。
+   - 第 2 批 作答頁／錯題頁：依已答題數的進度條與「已答 x / y」、已答題號彈跳回饋、只留一個交卷按鈕、訪客模式提示；錯題頁骨架畫面與三種空狀態。
+   - 第 3 批 AI 導師：打字中動畫、串流游標、訊息滑入、空對話 3 個範例提問、開場招呼不顯示評價列。
+   - 第 5 批 首頁與訪客：首頁新增核心功能／學習路徑／題庫資源區塊；移除寫死的「陳嘉恩」與大學生假任務，改為統測備考引導任務；登入頁預設「登入」。
+   - 第 4 批 手機版：底部 5 分頁導覽列、作答頁單題＋題號面板＋左右滑動切題、首頁「繼續作答」卡與本週行事曆、AI 導師歷史對話抽屜、錯題頁三分段、測驗中心卡片列、登入頁表單置頂。**桌機版版面不變。**
 
 1. **AI 學習導師歷史對話標題優化** (`routes/ai.js`, `AILearning.jsx`, `AILearning.module.css`):
    - 放寬標題截斷限制至 50 字並濾除上傳附件標籤。
