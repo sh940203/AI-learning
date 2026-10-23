@@ -239,11 +239,36 @@
   display: flex;
   gap: 16px;
   max-width: 85%;
+  /* 新訊息進場：AI 從左、使用者從右輕微滑入 */
+  animation: messageIn var(--duration-slow) var(--ease-out) backwards;
+}
+
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translate(-8px, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
 }
 
 .userRow {
   align-self: flex-end;
   flex-direction: row-reverse;
+  animation-name: messageInRight;
+}
+
+@keyframes messageInRight {
+  from {
+    opacity: 0;
+    transform: translate(8px, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
 }
 
 .aiAvatarSmall {
@@ -496,3 +521,93 @@
   cursor: not-allowed;
 }
 
+
+/* ── 等待回覆：打字中指示 ── */
+.typingBubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.typingDots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.typingDots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  opacity: 0.35;
+  animation: typingBounce 1.2s var(--ease-in-out) infinite;
+}
+
+.typingDots span:nth-child(2) { animation-delay: 0.15s; }
+.typingDots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.typingText {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* 串流中的游標 */
+.streamCaret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background-color: var(--color-primary);
+  animation: caretBlink 1s steps(1) infinite;
+}
+
+@keyframes caretBlink {
+  50% { opacity: 0; }
+}
+
+/* ── 空對話：範例提問 ── */
+.suggestions {
+  margin-left: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: messageIn var(--duration-slow) var(--ease-out) 120ms backwards;
+}
+
+.suggestionsLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.suggestionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestionChip {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--duration-base) var(--ease-out), background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+}
+
+.suggestionChip:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}

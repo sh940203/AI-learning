@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Paperclip, Send, RefreshCw, Loader2, MessageSquare, Plus, X, Pencil, Trash2, Check, Copy, CheckCheck } from 'lucide-react';
+import { Paperclip, Send, RefreshCw, MessageSquare, Plus, X, Pencil, Trash2, Check, Copy, CheckCheck, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -56,6 +56,13 @@ const incrementTodayQuestionCount = () => {
   return newCount;
 };
 
+// 空對話時的範例提問 (對應 demo 情境《數位科技概論》第 1 章)
+const SUGGESTED_PROMPTS = [
+  '資料和資訊有什麼不同？',
+  '批次處理和即時處理要怎麼分辨？',
+  '二進位要怎麼轉成十六進位？'
+];
+
 const AILearning = () => {
   const [deviceId, setDeviceId] = useState('');
   const [usedCount, setUsedCount] = useState(0);
@@ -82,6 +89,8 @@ const AILearning = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // AI 回覆串流中 (第一包資料到達後 → 完成前)，串流期間不顯示評價列
+  const [isStreaming, setIsStreaming] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [pdfText, setPdfText] = useState('');
   const [pdfName, setPdfName] = useState('');
@@ -263,8 +272,10 @@ const AILearning = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() && !imageUrl && !pdfText) return;
+  // presetText：點選範例提問時直接送出該文字
+  const handleSendMessage = async (presetText) => {
+    const rawText = typeof presetText === 'string' ? presetText : inputValue;
+    if (!rawText.trim() && !imageUrl && !pdfText) return;
     
     // 任務 B：發問次數上限檢查
     if (isLimitReached) {
@@ -272,7 +283,7 @@ const AILearning = () => {
       return;
     }
 
-    const userMessage = inputValue.trim();
+    const userMessage = rawText.trim();
     const currentBase64 = imageUrl;
     const currentPdfText = pdfText;
     const currentPdfName = pdfName;
@@ -320,6 +331,7 @@ const AILearning = () => {
             // 收到第一包資料（不論是 chunk、error 還是 done）時，才關閉 isLoading 並加入預設泡泡
             if (isFirstChunk && (data.type === 'chunk' || data.type === 'error' || data.type === 'done')) {
               setIsLoading(false);
+              setIsStreaming(true);
               setMessages(prev => [...prev, { role: 'model', content: '' }]);
               isFirstChunk = false;
             }
@@ -339,6 +351,7 @@ const AILearning = () => {
               // 任務 B：每次成功發送/回應後更新 localStorage 發問紀錄 [日期]: [已發問次數]
               const newCount = incrementTodayQuestionCount();
               setUsedCount(newCount);
+              setIsStreaming(false);
               
               ctrl.abort(); // 傳輸完成，主動關閉連線，避免 fetchEventSource 自動重試
             } else if (data.type === 'error') {
@@ -347,6 +360,7 @@ const AILearning = () => {
                 newMsg[newMsg.length - 1].content = data.reply;
                 return newMsg;
               });
+              setIsStreaming(false);
               ctrl.abort();
             }
           } catch (e) {
@@ -357,6 +371,7 @@ const AILearning = () => {
           if (err.name === 'AbortError') return; // 主動中斷時不拋出錯誤
           
           setIsLoading(false);
+          setIsStreaming(false);
           console.error("SSE Connection Error", err);
           throw err;
         }
@@ -366,6 +381,7 @@ const AILearning = () => {
       
       console.error('Error sending message:', error);
       setIsLoading(false);
+      setIsStreaming(false);
       setMessages(prev => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.role === 'model') {
@@ -527,7 +543,13 @@ const AILearning = () => {
                       >
                         {msg.content.replace(/\[TAG:.*?\]/g, '')}
                       </ReactMarkdown>
-                      <FeedbackRatingBar question={{ title: msg.content.slice(0, 60) }} />
+                      {isStreaming && index === messages.length - 1 && (
+                        <span className={styles.streamCaret} aria-hidden="true" />
+                      )}
+                      {/* 開場招呼與串流中的回覆不顯示評價列 */}
+                      {!msg.content.includes('你好！我是一位專屬商科') && !(isStreaming && index === messages.length - 1) && (
+                        <FeedbackRatingBar question={{ title: msg.content.slice(0, 60) }} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -557,12 +579,28 @@ const AILearning = () => {
             </div>
           ))}
           
+          {/* 空對話：範例提問，點一下直接送出 */}
+          {messages.length === 1 && !isLoading && !isLimitReached && (
+            <div className={styles.suggestions}>
+              <span className={styles.suggestionsLabel}><Sparkles size={13} /> 不知道從哪問起？試試看：</span>
+              <div className={styles.suggestionList}>
+                {SUGGESTED_PROMPTS.map(prompt => (
+                  <button key={prompt} className={styles.suggestionChip} onClick={() => handleSendMessage(prompt)}>
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isLoading && (
             <div className={styles.messageRow}>
               <div className={styles.aiAvatarSmall}></div>
-              <div className={styles.messageBubble} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Loader2 size={16} className={styles.spinner} style={{ animation: 'spin 1s linear infinite' }} />
-                <span>正在思考...</span>
+              <div className={`${styles.messageBubble} ${styles.typingBubble}`} role="status">
+                <span className={styles.typingDots} aria-hidden="true">
+                  <span /><span /><span />
+                </span>
+                <span className={styles.typingText}>AI 導師正在查閱題庫並整理解答…</span>
               </div>
             </div>
           )}
@@ -639,7 +677,7 @@ const AILearning = () => {
             />
             <button 
               className={styles.sendBtn} 
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               disabled={isLoading || (!inputValue.trim() && !imageUrl && !pdfText) || isLimitReached}
               style={{ opacity: (isLoading || (!inputValue.trim() && !imageUrl && !pdfText) || isLimitReached) ? 0.5 : 1 }}
               title={isLimitReached ? "今日發問額度已用盡" : "發送訊息"}
