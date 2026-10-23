@@ -19,6 +19,30 @@ button {
   font-family: var(--font-inter);
 }
 
+/* ── 全域互動回饋 ── */
+/* 按下時輕微縮小，讓點擊有手感 (按鈕各自的 hover 樣式仍由 CSS Module 控制) */
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* 鍵盤操作 (Tab) 時顯示焦點外框；滑鼠點擊不顯示 */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 使用者在系統設定「減少動態效果」時，關閉所有動畫與過場 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 input, textarea {
   font-family: var(--font-inter);
 }

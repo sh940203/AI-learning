@@ -190,7 +190,7 @@
   font-weight: 500;
   cursor: pointer;
   margin-bottom: var(--spacing-md);
-  transition: all 0.2s;
+  transition: background-color var(--duration-base) var(--ease-out), transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
   white-space: nowrap;
 }
 
@@ -202,6 +202,7 @@
 
 .primaryBtn:hover {
   background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .ghostBtn {
@@ -217,6 +218,7 @@
   text-align: left;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+  transition: background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
 }
 
 .sidebar.collapsed .ghostBtn {
@@ -300,4 +302,22 @@
   overflow-y: auto;
   padding: var(--spacing-xl);
   background-color: var(--color-bg-main);
+}
+
+/* 換頁過場：淡入 + 輕微上滑。
+   fill-mode 用 backwards，動畫結束後不殘留 transform，避免頁面內 position: fixed 的彈窗定位跑掉 */
+.pageTransition {
+  height: 100%;
+  animation: pageEnter var(--duration-slow) var(--ease-out) backwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

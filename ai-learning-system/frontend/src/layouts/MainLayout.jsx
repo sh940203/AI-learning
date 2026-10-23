@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, Bell, Search, Menu, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
@@ -7,6 +7,7 @@ import styles from './MainLayout.module.css';
 
 const MainLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showSystemFeedback, setShowSystemFeedback] = useState(false);
@@ -109,7 +110,10 @@ const MainLayout = () => {
         </header>
         
         <main className={styles.content}>
-          <Outlet />
+          {/* 以路徑為 key，換頁時重新播放淡入過場 */}
+          <div key={location.pathname} className={styles.pageTransition}>
+            <Outlet />
+          </div>
         </main>
       </div>
 
