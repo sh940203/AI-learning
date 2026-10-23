@@ -49,6 +49,8 @@
   --duration-intro-step: 800ms;
   --duration-page-flip: 4s;
   --duration-card-fly: 6s;
+  /* 首頁 logo 電路光點循環週期 (components/welcome/LogoIntro) */
+  --duration-signal: 6s;
 
   /* Elevation */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);

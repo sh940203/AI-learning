@@ -1,0 +1,49 @@
+/* 首頁 logo 光點：以極短的虛線段沿路線移動 (pathLength=1)，週期前段跑完、其餘時間靜止 */
+.signal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.glow,
+.spark {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.02 2;
+  stroke-dashoffset: 0.02;
+  opacity: 0;
+  animation: signalRun var(--duration-signal) var(--ease-in-out) infinite;
+}
+
+.glow {
+  stroke: #93c5fd;
+  stroke-width: 150;
+}
+
+.spark {
+  stroke: #ffffff;
+  stroke-width: 60;
+}
+
+@keyframes signalRun {
+  0% { stroke-dashoffset: 0.02; opacity: 0; }
+  4% { opacity: 1; }
+  32% { opacity: 1; }
+  36% { stroke-dashoffset: -1; opacity: 0; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+.paused .glow,
+.paused .spark {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal {
+    display: none;
+  }
+}

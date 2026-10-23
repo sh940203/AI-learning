@@ -1,9 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Info, BrainCircuit, Target, Zap, PenTool, Search, TrendingUp,
   ArrowRight, BookOpen, Database, CalendarRange
 } from 'lucide-react';
+import LogoIntro from '../components/welcome/LogoIntro';
+import LogoSignal from '../components/welcome/LogoSignal';
 import styles from './Home.module.css';
 import logoUrl from '../assets/logo.png';
 
@@ -43,8 +45,37 @@ const RESOURCE_STATS = [
   { icon: CalendarRange, value: '111–115', unit: '年', label: '歷屆統測・學測試卷' }
 ];
 
+const INTRO_SEEN_KEY = 'homeIntroSeen';
+
+// 首頁開場是否要播放：同一次開啟瀏覽器只播一次 (與登入頁的 introSeen 分開計算)；減少動態效果時不播
+const shouldPlayIntro = () => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  try {
+    return sessionStorage.getItem(INTRO_SEEN_KEY) !== '1';
+  } catch {
+    return false;
+  }
+};
+
 const Home = () => {
   const pageRef = useRef(null);
+  const logoRef = useRef(null);
+
+  // 歡迎動畫：playing = 開場播放中；revealed = 主視覺已浮現
+  const [reduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [introPlaying, setIntroPlaying] = useState(shouldPlayIntro);
+  const [introPlayed] = useState(introPlaying);
+  const [heroRevealed, setHeroRevealed] = useState(!introPlaying);
+
+  const handleIntroReveal = useCallback(() => setHeroRevealed(true), []);
+  const handleIntroFinish = useCallback(() => {
+    try {
+      sessionStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {
+      // 無法寫入 sessionStorage 時，下次仍會播放，不影響瀏覽
+    }
+    setIntroPlaying(false);
+  }, []);
 
   // 捲動到區塊時淡入 (IntersectionObserver，進入畫面一次後即停止觀察)
   useEffect(() => {
@@ -68,9 +99,17 @@ const Home = () => {
 
   return (
     <div className={styles.container} ref={pageRef}>
-      <section className={styles.heroSection}>
+      {introPlaying && (
+        <LogoIntro targetRef={logoRef} onReveal={handleIntroReveal} onFinish={handleIntroFinish} />
+      )}
+
+      <section className={`${styles.heroSection} ${!heroRevealed ? styles.heroHold : ''} ${introPlayed ? styles.afterIntro : ''}`}>
         <div className={`${styles.logoWrapper} ${styles.heroItem}`}>
-          <img src={logoUrl} alt="MIND SYNC Logo" className={styles.logoImage} />
+          {/* 原圖＋光點層：光點 SVG 與圖片同框同比例，座標對齊 */}
+          <div className={styles.logoMarkBox}>
+            <img ref={logoRef} src={logoUrl} alt="MIND SYNC Logo" className={styles.logoImage} />
+            {!reduceMotion && <LogoSignal />}
+          </div>
           <h2 className={styles.logoText}>MIND SYNC</h2>
         </div>
 
