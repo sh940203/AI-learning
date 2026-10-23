@@ -143,7 +143,7 @@
   font-weight: 500;
   color: var(--color-text-main);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -163,9 +163,18 @@
 }
 
 .gridAnswered {
-  background-color: #f0fdf4;
-  border-color: #bbf7d0;
+  background-color: #dcfce7;
+  border-color: #4ade80;
   color: #15803d;
+  font-weight: 600;
+  /* 題號由未答變已答時輕彈一下，讓作答有回饋感 */
+  animation: gridPop var(--duration-slow) var(--ease-out);
+}
+
+@keyframes gridPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
 }
 
 .gridSelected {

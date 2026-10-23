@@ -250,11 +250,6 @@ const ExamRenderCore = ({
             })}
           </div>
 
-          {!isPreview && (
-            <button className={styles.submitBtn} onClick={() => onToggleMark('submit')}>
-              交卷
-            </button>
-          )}
         </div>
       )}
 

@@ -329,8 +329,22 @@
   padding: var(--spacing-lg);
   background-color: var(--color-bg-main);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), background-color var(--duration-base) var(--ease-out);
   position: relative;
+  /* 錯題卡依序淡入 (延遲由 JSX 的 --enter-delay 控制) */
+  animation: cardEnter var(--duration-slow) var(--ease-out) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .wrongCard:hover {
@@ -925,4 +939,65 @@
   color: var(--color-text-muted);
   border-radius: 4px;
   font-size: 12px;
+}
+
+/* ── 空狀態補充 ── */
+.emptyIconMuted {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.emptyState p {
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.emptyActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--spacing-lg);
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+}
+
+.emptyActionBtn:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── 骨架畫面 ── */
+.skeletonCard {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeletonLine,
+.skeletonBlock {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-bg-hover) 0%, var(--color-border) 50%, var(--color-bg-hover) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonBlock {
+  height: 56px;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }

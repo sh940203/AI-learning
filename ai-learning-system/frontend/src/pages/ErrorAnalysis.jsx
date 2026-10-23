@@ -3,9 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search, RotateCcw, BarChart2, XCircle, CheckCircle2, Bot, Lightbulb,
   ArrowRight, Folder, Globe, BookOpen, Zap, AlertCircle, ChevronDown, ChevronUp,
-  Sparkles, Brain, Target, TrendingUp, Filter, RefreshCw
+  Sparkles, Brain, Target, TrendingUp, Filter, RefreshCw, LogIn, PenTool
 } from 'lucide-react';
 import styles from './ErrorAnalysis.module.css';
+import { useAuth } from '../context/AuthContext';
 import {
   fetchWrongQuestions, fetchMasteryStats, fetchAIExplain, fetchQuizGenerate, fetchUserExamProgress
 } from '../services/examService';
@@ -64,12 +65,14 @@ const MasteryBar = ({ name, masteryRate, animated }) => {
 const ErrorAnalysis = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
 
   // ─ 模式切換：單卷 / 全局 ─
   const [mode, setMode] = useState('single'); // 'single' | 'global'
   const [selectedExamId, setSelectedExamId] = useState(searchParams.get('examId') || '');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [completedExams, setCompletedExams] = useState([]);
+  const [examsLoaded, setExamsLoaded] = useState(false);
 
   // ─ 資料狀態 ─
   const [wrongQuestions, setWrongQuestions] = useState([]);
@@ -107,7 +110,9 @@ const ErrorAnalysis = () => {
         if (!selectedExamId && list.filter(p => p.status === 'completed').length > 0) {
           setSelectedExamId(list.filter(p => p.status === 'completed')[0].examId);
         }
-      } catch {}
+      } catch {} finally {
+        setExamsLoaded(true);
+      }
     };
     load();
   }, []);
@@ -353,9 +358,34 @@ const ErrorAnalysis = () => {
 
           {/* 錯題卡片列表 */}
           {loading ? (
-            <div className={styles.loadingState}>
-              <RefreshCw size={24} className={styles.spinner} />
-              <p>正在載入錯題資料...</p>
+            // 骨架畫面：先撐出卡片輪廓，避免資料載入時畫面空白跳動
+            <div className={styles.wrongList} aria-busy="true" aria-label="正在載入錯題資料">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={styles.skeletonCard}>
+                  <div className={styles.skeletonLine} style={{ width: '30%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '90%' }} />
+                  <div className={styles.skeletonLine} style={{ width: '75%' }} />
+                  <div className={styles.skeletonBlock} />
+                </div>
+              ))}
+            </div>
+          ) : !user ? (
+            <div className={styles.emptyState}>
+              <LogIn size={44} className={styles.emptyIconMuted} />
+              <h3>登入後即可查看錯題分析</h3>
+              <p>完成考卷後，AI 會整理你的錯題、分析觀念盲點，並推薦強化練習。</p>
+              <button className={styles.emptyActionBtn} onClick={() => navigate('/login')}>
+                <LogIn size={15} /> 前往登入
+              </button>
+            </div>
+          ) : examsLoaded && wrongQuestions.length === 0 && completedExams.length === 0 ? (
+            <div className={styles.emptyState}>
+              <PenTool size={44} className={styles.emptyIconMuted} />
+              <h3>還沒有完成的考卷</h3>
+              <p>先到考試中心寫一份考卷，交卷後這裡會出現你的錯題與 AI 分析。</p>
+              <button className={styles.emptyActionBtn} onClick={() => navigate('/tests')}>
+                <ArrowRight size={15} /> 前往考試中心
+              </button>
             </div>
           ) : filteredWrong.length === 0 ? (
             <div className={styles.emptyState}>
@@ -376,6 +406,7 @@ const ErrorAnalysis = () => {
                     key={qId}
                     ref={el => { cardRefs.current[qId] = el; }}
                     className={`${styles.wrongCard} ${isActive ? styles.wrongCardActive : ''}`}
+                    style={{ '--enter-delay': `${Math.min(idx, 8) * 40}ms` }}
                     onClick={() => setActiveQIndex(idx)}
                   >
                     {/* 卡片頂部資訊列 */}

@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, ArrowLeft, AlertTriangle, RefreshCw, CheckCircle, CloudOff, Cloud } from 'lucide-react';
+import { Clock, ArrowLeft, AlertTriangle, RefreshCw, CheckCircle, CloudOff, Cloud, UserX, LogIn } from 'lucide-react';
 import { fetchExamById, updateExamProgress, fetchUserExamProgress } from '../services/examService';
 import ExamRenderCore from '../components/ExamRenderCore';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
+import { useAuth } from '../context/AuthContext';
 import styles from './TakeExam.module.css';
 
 const TakeExam = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // 訪客模式：未登入可作答，但無法儲存進度與交卷
+  const isGuest = !user;
 
   const [examData, setExamData] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
@@ -21,7 +25,6 @@ const TakeExam = () => {
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved' | 'error'
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [unansweredList, setUnansweredList] = useState([]);
-  const [scrollProgress, setScrollProgress] = useState(0);
   const [reportQuestionId, setReportQuestionId] = useState(null);
   const mainRef = useRef(null);
 
@@ -113,29 +116,14 @@ const TakeExam = () => {
 
   // 3. 定時每 30 秒雲端自動存檔
   useEffect(() => {
-    if (loading || !examData) return;
+    if (loading || !examData || isGuest) return;
 
     const autoSaveTimer = setInterval(() => {
       handleSaveProgress(true);
     }, 30000);
 
     return () => clearInterval(autoSaveTimer);
-  }, [loading, examData, selectedAnswers]);
-
-  // 4. 監聽滾動更新 HUD 進度條
-  useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const progress = scrollHeight > clientHeight
-        ? (scrollTop / (scrollHeight - clientHeight)) * 100
-        : 0;
-      setScrollProgress(Math.min(100, progress));
-    };
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [loading, examData]);
+  }, [loading, examData, selectedAnswers, isGuest]);
 
   // 格式化時間為 MM:SS
   const formatTime = (seconds) => {
@@ -186,7 +174,7 @@ const TakeExam = () => {
 
   // 處理答題選擇事件
   const handleAnswerSelect = (qId, val, isMultiple = false, isSubQ = false, subQId = null, isText = false) => {
-    setSaveStatus('unsaved');
+    if (!isGuest) setSaveStatus('unsaved');
     setSelectedAnswers(prev => {
       const currentQAns = prev[qId] || { selectedOptions: [], subQuestionAnswers: [], answerText: '' };
       
@@ -336,6 +324,11 @@ const TakeExam = () => {
 
   // 時間截止自動交卷
   const handleAutoSubmit = async () => {
+    if (isGuest) {
+      alert('⏰ 考試時間截止！訪客模式無法交卷，登入後即可保存成績與錯題分析。');
+      navigate('/tests');
+      return;
+    }
     setLoading(true);
     try {
       const formattedAnswers = Object.keys(selectedAnswers).map(qId => ({
@@ -374,6 +367,18 @@ const TakeExam = () => {
 
   const questionsList = examData?.questions || [];
 
+  // 作答進度 (與交卷檢查同一套判斷：題組需全部子題作答才算完成)
+  const answeredCount = questionsList.filter(q => {
+    const ans = selectedAnswers[q._id];
+    if (q.type === 'group') {
+      const subCount = q.subQuestions?.length || 0;
+      return subCount > 0 && (ans?.subQuestionAnswers?.filter(sa => sa.selectedOptions?.length > 0).length || 0) === subCount;
+    }
+    if (q.type === 'fill' || q.type === 'short') return !!ans?.answerText?.trim();
+    return ans?.selectedOptions?.length > 0;
+  }).length;
+  const answeredPercent = questionsList.length > 0 ? (answeredCount / questionsList.length) * 100 : 0;
+
   return (
     <div className={styles.takeExamWrapper}>
       {/* 沉浸式頂部控制列 */}
@@ -383,23 +388,35 @@ const TakeExam = () => {
         </div>
 
         <div className={styles.headerRight}>
-          {/* 雲端同步狀態動畫 Icon */}
-          <div className={`${styles.saveIndicator} ${
-            saveStatus === 'saving' ? styles.saveIndicatorSaving :
-            saveStatus === 'unsaved' ? styles.saveIndicatorUnsaved :
-            saveStatus === 'error' ? styles.saveIndicatorError : ''
-          }`}>
-            {saveStatus === 'saved' && <CheckCircle size={14} className={styles.saveIconSaved} />}
-            {saveStatus === 'saving' && <Cloud size={14} className={styles.saveIconSyncing} />}
-            {saveStatus === 'unsaved' && <Cloud size={14} className={styles.saveIconUnsaved} />}
-            {saveStatus === 'error' && <CloudOff size={14} />}
-            <span className={styles.saveText}>
-              {saveStatus === 'saved' && '已同步'}
-              {saveStatus === 'saving' && '同步中...'}
-              {saveStatus === 'unsaved' && '有未儲存修改'}
-              {saveStatus === 'error' && '同步失敗'}
-            </span>
+          {/* 作答進度 */}
+          <div className={styles.answeredPill} title="已完成作答的題數">
+            已答 <strong>{answeredCount}</strong> / {questionsList.length}
           </div>
+
+          {/* 雲端同步狀態動畫 Icon；訪客模式改顯示登入提示 */}
+          {isGuest ? (
+            <div className={`${styles.saveIndicator} ${styles.saveIndicatorGuest}`} title="登入後才能儲存作答進度並交卷">
+              <UserX size={14} />
+              <span className={styles.saveText}>訪客模式・不會儲存進度</span>
+            </div>
+          ) : (
+            <div className={`${styles.saveIndicator} ${
+              saveStatus === 'saving' ? styles.saveIndicatorSaving :
+              saveStatus === 'unsaved' ? styles.saveIndicatorUnsaved :
+              saveStatus === 'error' ? styles.saveIndicatorError : ''
+            }`}>
+              {saveStatus === 'saved' && <CheckCircle size={14} className={styles.saveIconSaved} />}
+              {saveStatus === 'saving' && <Cloud size={14} className={styles.saveIconSyncing} />}
+              {saveStatus === 'unsaved' && <Cloud size={14} className={styles.saveIconUnsaved} />}
+              {saveStatus === 'error' && <CloudOff size={14} />}
+              <span className={styles.saveText}>
+                {saveStatus === 'saved' && '已同步'}
+                {saveStatus === 'saving' && '同步中...'}
+                {saveStatus === 'unsaved' && '有未儲存修改'}
+                {saveStatus === 'error' && '同步失敗'}
+              </span>
+            </div>
+          )}
 
           {/* 倒數計時器 */}
           {!examData?.noTimeLimit && (
@@ -410,14 +427,17 @@ const TakeExam = () => {
           )}
 
           <button className={styles.submitBtnHeader} onClick={checkUnansweredAndOpenDialog}>
-            確認交卷
+            交卷
           </button>
         </div>
       </header>
 
-      {/* 滾動進度 HUD 條 */}
+      {/* 作答進度條 (依已答題數，非捲動位置) */}
       <div className={styles.scrollProgressBar}>
-        <div className={styles.scrollProgressFill} style={{ width: `${scrollProgress}%` }} />
+        <div
+          className={`${styles.scrollProgressFill} ${answeredCount === questionsList.length && questionsList.length > 0 ? styles.progressComplete : ''}`}
+          style={{ width: `${answeredPercent}%` }}
+        />
       </div>
 
       {/* 主體作答渲染區 */}
@@ -469,7 +489,13 @@ const TakeExam = () => {
               <p className={styles.successNotice}>🎉 恭喜！您已完成所有題目的填答。</p>
             )}
 
-            <p className={styles.dialogSubText}>交卷後系統將立即為您進行自動閱卷與錯題分析，答案將無法修改。</p>
+            {isGuest ? (
+              <p className={styles.guestNotice}>
+                <UserX size={14} /> 目前為訪客模式，無法交卷與保存成績。登入後重新作答，即可取得 AI 錯題分析。
+              </p>
+            ) : (
+              <p className={styles.dialogSubText}>交卷後系統將立即為您進行自動閱卷與錯題分析，答案將無法修改。</p>
+            )}
 
             <div className={styles.dialogActions}>
               <button 
@@ -479,13 +505,19 @@ const TakeExam = () => {
               >
                 返回繼續作答
               </button>
-              <button 
-                className={styles.dialogConfirmBtn} 
-                onClick={handleSubmitExam}
-                disabled={loading}
-              >
-                {loading ? '提交中...' : '確認交卷'}
-              </button>
+              {isGuest ? (
+                <button className={styles.dialogConfirmBtn} onClick={() => navigate('/login')}>
+                  <LogIn size={15} /> 前往登入
+                </button>
+              ) : (
+                <button 
+                  className={styles.dialogConfirmBtn} 
+                  onClick={handleSubmitExam}
+                  disabled={loading}
+                >
+                  {loading ? '提交中...' : '確認交卷'}
+                </button>
+              )}
             </div>
           </div>
         </div>
