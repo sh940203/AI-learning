@@ -62,7 +62,7 @@
 │       │   │   ├── TakeExam.jsx             # 實際考試作答頁面
 │       │   │   ├── ErrorAnalysis.jsx        # 錯題分析報告 & 確保觀念生成題
 │       │   │   ├── Dashboard.jsx            # 首頁儀表板 (任務時間軸、繼續作答卡)
-│       │   │   └── Home.jsx                 # 公開首頁 (核心功能／學習路徑／題庫資源)
+│       │   │   └── Home.jsx                 # 公開首頁 (logo 開場、大圖主視覺、截圖功能卡、學習循環圖、題庫數字)
 │       │   ├── services/
 │       │   │   └── examService.js           # 前端 API 串接服務
 │       │   └── styles/
@@ -81,7 +81,9 @@
    - 第 5 批 首頁與訪客：首頁新增核心功能／學習路徑／題庫資源區塊；移除寫死的「陳嘉恩」與大學生假任務，改為統測備考引導任務；登入頁預設「登入」。
    - 第 4 批 手機版：底部 5 分頁導覽列、作答頁單題＋題號面板＋左右滑動切題、首頁「繼續作答」卡與本週行事曆、AI 導師歷史對話抽屜、錯題頁三分段、測驗中心卡片列、登入頁表單置頂。**桌機版版面不變。**
 
-   - **首頁 logo 開場動畫**（`components/welcome/LogoIntro.jsx`、`LogoMark.jsx`、`LogoSignal.jsx`、`logoPaths.js`）：以 `logo.png` 描出的 SVG 線稿分段描繪（電路→盾牌→箭頭），約 2.9 秒後換成 PNG 並縮進主視覺卡片；之後卡片 logo 每 6 秒有光點沿電路跑到箭頭。同一次瀏覽器只播一次，記在 `sessionStorage` 的 `homeIntroSeen`（與登入頁的 `introSeen` 分開）。線稿座標與 PNG 原始尺寸 1201×1536 對齊，**更換 logo 圖檔時需重描 `logoPaths.js`**。新增 token：`--duration-signal`。
+   - **首頁 logo 開場動畫**（`components/welcome/LogoIntro.jsx`、`LogoMark.jsx`、`LogoSignal.jsx`、`logoPaths.js`）：以 `logo.png` 描出的 SVG 線稿分段描繪（電路→盾牌→箭頭），約 2.9 秒後換成 PNG 並移到主視覺右側；之後 logo 每 6 秒有光點沿電路跑到箭頭。同一次瀏覽器只播一次，記在 `sessionStorage` 的 `homeIntroSeen`（與登入頁的 `introSeen` 分開）。線稿座標與 PNG 原始尺寸 1201×1536 對齊，**更換 logo 圖檔時需重描 `logoPaths.js`**。新增 token：`--duration-signal`。
+   - **首頁改版**（`Home.jsx`、`components/welcome/HeroCircuit.jsx`）：主視覺改為左標題、右大 logo＋往外延伸的電路線；功能區改用系統實際截圖（`assets/home/`，`*-thumb.webp` 為卡片縮圖、其餘為點擊放大的完整圖，**介面改版後需重拍**）；學習循環改為循環圖、題庫改為大數字。開場結束後下方區塊才漸顯。頂部「開始使用」在主視覺按鈕可見時隱藏（`LandingLayout` 以 Outlet context 接收狀態）。
+   - **整併重複按鈕**：登入頁移除頂部「登入／註冊」與無作用的 Google／GitHub；測驗中心移除「前往錯題分析報告」；錯題分析移除右上「AI 錯題分析」（改用錯題卡上的「召喚 AI 深入解析此題」）；手機作答頁的題號面板不再放交卷，只顯示未完成題數；側欄移除無作用的「開始新課程」「協助中心」。
    - **登入頁歡迎動畫**（`components/welcome/BookIntro.jsx`、`BookStage.jsx`）：題目卡片翻飛疊成書的開場（約 3.5 秒，可按略過或 Esc，同一次瀏覽器只播一次，記在 `sessionStorage` 的 `introSeen`；減少動態效果時不播），之後左欄循環翻頁與飛出小卡；系統公告改為頂部「公告」按鈕彈窗。新增 token：`--duration-intro-step`、`--duration-page-flip`、`--duration-card-fly`。
    - **後端 API 用量統計修正**（`services/metricService.js`、`server.js`）：多個請求同時更新當日 `SystemMetric` 會觸發 `VersionError` 而漏算，改用 MongoDB 原子累加 (`$inc`)；已以 50 個併發請求驗證計數無遺漏。
 
@@ -98,7 +100,7 @@
 
 ## 三、待辦清單 (Critical Checklist)
 
-### ✅ 待辦 1：右上角「AI 錯題分析」按鈕無動作問題（已完成，commit `352354f`）
+### ✅ 待辦 1：右上角「AI 錯題分析」按鈕無動作問題（已完成，commit `352354f`；2026-10-24 因與錯題卡按鈕功能重複已移除）
 - **完成狀態**：點擊後滾動至目前選中的錯題卡並召喚 AI 解析，已解析過則直接展開結果；無錯題或解析中時按鈕停用。
 - **位置**：[ErrorAnalysis.jsx](file:///Users/sh/Desktop/AI%20learning/ai-learning-system/frontend/src/pages/ErrorAnalysis.jsx#L298-L300)
 - **現況**：`<button className={styles.primaryBtn}><BarChart2 size={16} /> AI 錯題分析</button>` 目前**沒有綁定 `onClick` 事件**，只是一個純裝飾按鈕。
@@ -143,7 +145,7 @@
 ### Demo 流程
 1. 登入 → 考試中心 → 作答「[114 統測] 專業科目(一)」並交卷（建議刻意答錯幾題）。
 2. 進入「分析報告」頁：錯題清單、知識點篩選與「觀念覆蓋掌握度」會顯示「數位科技概念」。
-3. 點選一張錯題卡 → 右上角「AI 錯題分析」：滾動至該題並產生 AI 三維度解析（關鍵謬誤／觀念盲點／建議強化）。
+3. 在錯題卡上點「召喚 AI 深入解析此題」：產生 AI 三維度解析（關鍵謬誤／觀念盲點／建議強化）。（原右上角「AI 錯題分析」按鈕已於 2026-10-24 整併移除）
 4. 右側「確保觀念生成題」→ 生成 10／30／50 題 → 開始強化練習：題目全部來自《題庫資料庫》「數位科技概念」章節（已驗證 10/30/50 題皆 100% 同章）。
 
 ### 注意事項
