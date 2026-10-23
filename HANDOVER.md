@@ -81,6 +81,7 @@
    - 第 5 批 首頁與訪客：首頁新增核心功能／學習路徑／題庫資源區塊；移除寫死的「陳嘉恩」與大學生假任務，改為統測備考引導任務；登入頁預設「登入」。
    - 第 4 批 手機版：底部 5 分頁導覽列、作答頁單題＋題號面板＋左右滑動切題、首頁「繼續作答」卡與本週行事曆、AI 導師歷史對話抽屜、錯題頁三分段、測驗中心卡片列、登入頁表單置頂。**桌機版版面不變。**
 
+   - **登入頁歡迎動畫**（`components/welcome/BookIntro.jsx`、`BookStage.jsx`）：題目卡片翻飛疊成書的開場（約 3.5 秒，可按略過或 Esc，同一次瀏覽器只播一次，記在 `sessionStorage` 的 `introSeen`；減少動態效果時不播），之後左欄循環翻頁與飛出小卡；系統公告改為頂部「公告」按鈕彈窗。新增 token：`--duration-intro-step`、`--duration-page-flip`、`--duration-card-fly`。
    - **後端 API 用量統計修正**（`services/metricService.js`、`server.js`）：多個請求同時更新當日 `SystemMetric` 會觸發 `VersionError` 而漏算，改用 MongoDB 原子累加 (`$inc`)；已以 50 個併發請求驗證計數無遺漏。
 
 1. **AI 學習導師歷史對話標題優化** (`routes/ai.js`, `AILearning.jsx`, `AILearning.module.css`):
