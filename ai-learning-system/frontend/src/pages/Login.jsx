@@ -146,8 +146,6 @@ const Login = () => {
             <span className={styles.announceLabel}>公告</span>
             {announcementsData.length > 0 && <span className={styles.announceCount}>{announcementsData.length}</span>}
           </button>
-          <button className={styles.outlineBtn} onClick={() => { setActiveTab('login'); setErrors({}); }}>登入</button>
-          <button className={styles.primaryBtn} onClick={() => { setActiveTab('register'); setErrors({}); }}>註冊</button>
         </div>
       </header>
 
@@ -331,19 +329,6 @@ const Login = () => {
                 {activeTab === 'register' ? '立即註冊' : '登入系統'}
               </button>
             </form>
-
-            <div className={styles.divider}>
-              <span>第三方快速登入</span>
-            </div>
-
-            <div className={styles.socialAuth}>
-              <button type="button" className={styles.socialBtn}>
-                Google
-              </button>
-              <button type="button" className={styles.socialBtn}>
-                GitHub
-              </button>
-            </div>
           </div>
         </div>
       </main>

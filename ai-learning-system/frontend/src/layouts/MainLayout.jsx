@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, LogIn, Bell, Search, Menu, AlertTriangle, Target, UserRound, X } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, PenTool, Settings, LogOut, LogIn, Bell, Search, Menu, AlertTriangle, Target, UserRound, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import styles from './MainLayout.module.css';
@@ -89,14 +89,8 @@ const MainLayout = () => {
               </div>
             </div>
           )}
-          <button className={styles.primaryBtn} title="開始新課程">
-            <Plus size={18} /> <span className={styles.navItemText}>開始新課程</span>
-          </button>
           <button className={styles.ghostBtn} onClick={() => setShowSystemFeedback(true)} title="錯誤回饋">
             <AlertTriangle size={18} /> <span className={styles.navItemText}>錯誤回饋</span>
-          </button>
-          <button className={styles.ghostBtn} title="協助中心">
-            <HelpCircle size={18} /> <span className={styles.navItemText}>協助中心</span>
           </button>
           {user ? (
             <button className={styles.ghostBtn} onClick={handleLogout} title="登出">
@@ -195,9 +189,6 @@ const MainLayout = () => {
               </button>
               <button className={styles.sheetItem} onClick={() => { setShowMobileMenu(false); setShowSystemFeedback(true); }}>
                 <AlertTriangle size={18} /> 錯誤回饋
-              </button>
-              <button className={styles.sheetItem}>
-                <HelpCircle size={18} /> 協助中心
               </button>
               {user ? (
                 <button className={`${styles.sheetItem} ${styles.sheetItemDanger}`} onClick={() => { setShowMobileMenu(false); handleLogout(); }}>

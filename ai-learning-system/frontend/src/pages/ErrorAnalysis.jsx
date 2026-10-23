@@ -101,8 +101,6 @@ const ErrorAnalysis = () => {
 
   // 掌握度圖表動畫觸發
   const masteryRef = useRef(null);
-  // 錯題卡片 DOM 參照 (供右上角「AI 錯題分析」滾動定位)
-  const cardRefs = useRef({});
 
   // ─ 載入已完成考卷列表 ─
   useEffect(() => {
@@ -174,8 +172,6 @@ const ErrorAnalysis = () => {
   // ─ 提取所有知識點標籤 ─
   const allTags = [...new Set(wrongQuestions.flatMap(q => [...(q.tags || []), q.category].filter(Boolean)))];
 
-  const activeQ = filteredWrong[activeQIndex] || null;
-
   // ─ 召喚 AI 深入解析 ─
   const handleAIExplain = async (q) => {
     const qId = q.questionId;
@@ -191,21 +187,6 @@ const ErrorAnalysis = () => {
       setAiData(prev => ({ ...prev, [qId]: { status: 'done', result } }));
     } catch {
       setAiData(prev => ({ ...prev, [qId]: { status: 'error' } }));
-    }
-  };
-
-  // ─ 右上角「AI 錯題分析」：定位並解析目前選中的錯題 ─
-  const activeAIStatus = activeQ ? aiData[activeQ.questionId]?.status : null;
-  const handleAnalyzeActive = () => {
-    if (!activeQ) return;
-    const qId = activeQ.questionId;
-    cardRefs.current[qId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const state = aiData[qId];
-    if (!state || state.status === 'error') {
-      handleAIExplain(activeQ);
-    } else {
-      // 已解析過：直接展開結果
-      setExpandedAI(prev => ({ ...prev, [qId]: true }));
     }
   };
 
@@ -320,16 +301,6 @@ const ErrorAnalysis = () => {
           <button className={styles.outlineBtn} onClick={loadData}>
             <RotateCcw size={16} /> 重新載入
           </button>
-          <button
-            className={styles.primaryBtn}
-            onClick={handleAnalyzeActive}
-            disabled={!activeQ || activeAIStatus === 'loading'}
-            title={activeQ ? '定位並 AI 解析目前選中的錯題' : '目前沒有可分析的錯題'}
-          >
-            {activeAIStatus === 'loading'
-              ? <><Brain size={16} className={styles.aiSpinner} /> AI 分析中...</>
-              : <><BarChart2 size={16} /> AI 錯題分析</>}
-          </button>
         </div>
       </div>
 
@@ -426,7 +397,6 @@ const ErrorAnalysis = () => {
                 return (
                   <div
                     key={qId}
-                    ref={el => { cardRefs.current[qId] = el; }}
                     className={`${styles.wrongCard} ${isActive ? styles.wrongCardActive : ''}`}
                     style={{ '--enter-delay': `${Math.min(idx, 8) * 40}ms` }}
                     onClick={() => setActiveQIndex(idx)}

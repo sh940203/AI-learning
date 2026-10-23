@@ -555,9 +555,6 @@ const Tests = () => {
                       );
                     })}
                   </div>
-                  <button className={styles.viewAnalysisBtn} onClick={() => navigate('/error-analysis')}>
-                    前往錯題分析報告 &rarr;
-                  </button>
                 </>
               ) : (
                 <div className={styles.emptyWeaknessContainer}>

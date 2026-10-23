@@ -41,28 +41,6 @@
   gap: var(--spacing-md);
 }
 
-.outlineBtn {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-main);
-  padding: 6px 16px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 500;
-  font-size: var(--text-sm);
-}
-
-.primaryBtn {
-  background: var(--color-primary);
-  border: none;
-  color: var(--color-text-inverse);
-  padding: 6px 16px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 500;
-  font-size: var(--text-sm);
-}
-
 .main {
   flex: 1;
   display: flex;
@@ -316,57 +294,6 @@
   background-color: var(--color-primary-hover);
 }
 
-.divider {
-  position: relative;
-  text-align: center;
-  margin: var(--spacing-xl) 0;
-}
-
-.divider::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--color-border);
-  z-index: 1;
-}
-
-.divider span {
-  position: relative;
-  z-index: 2;
-  background-color: var(--color-bg-main);
-  padding: 0 var(--spacing-md);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
-.socialAuth {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.socialBtn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  padding: 10px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text-main);
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.socialBtn:hover {
-  background-color: var(--color-bg-hover);
-}
-
 /* Footer */
 .footer {
   display: flex;
@@ -533,12 +460,6 @@
   .headerRight {
     gap: var(--spacing-sm);
     flex-shrink: 0;
-  }
-
-  .outlineBtn,
-  .primaryBtn {
-    white-space: nowrap;
-    padding: 6px 12px;
   }
 
   /* 公告按鈕只留圖示與數量 */

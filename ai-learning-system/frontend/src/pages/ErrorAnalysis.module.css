@@ -194,30 +194,6 @@
   background-color: var(--color-bg-secondary);
 }
 
-.primaryBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary);
-  color: white;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.primaryBtn:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.primaryBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* ── 主體雙欄佈局 ── */
 .mainLayout {
   display: grid;

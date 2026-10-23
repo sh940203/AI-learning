@@ -1110,17 +1110,11 @@
   overflow-y: auto;
 }
 
-.qSheetSubmit {
-  width: 100%;
-  margin-top: var(--spacing-md);
-  padding: 12px;
-  border: none;
-  border-radius: var(--radius-md);
-  background-color: var(--color-primary);
-  color: #fff;
+.qSheetRemaining {
+  margin: var(--spacing-md) 0 0;
+  text-align: center;
   font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
+  color: var(--color-text-muted);
 }
 
 @keyframes qSheetFade {

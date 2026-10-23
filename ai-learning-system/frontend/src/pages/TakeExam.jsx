@@ -235,11 +235,6 @@ const TakeExam = () => {
 
   // 標記待查切換
   const handleToggleMark = (qId) => {
-    if (qId === 'submit') {
-      // 觸發交卷核對確認
-      checkUnansweredAndOpenDialog();
-      return;
-    }
     setMarkedQuestions(prev => 
       prev.includes(qId) ? prev.filter(id => id !== qId) : [...prev, qId]
     );

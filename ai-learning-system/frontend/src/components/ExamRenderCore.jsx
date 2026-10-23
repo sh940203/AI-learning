@@ -617,13 +617,13 @@ const ExamRenderCore = ({
                 );
               })}
             </div>
+            {/* 交卷統一使用頁首的「交卷」按鈕，這裡只顯示未完成題數 */}
             {!isPreview && (
-              <button
-                className={styles.qSheetSubmit}
-                onClick={() => { setShowQSheet(false); onToggleMark('submit'); }}
-              >
-                交卷{totalAnswered < questions.length ? `（尚有 ${questions.length - totalAnswered} 題未完成）` : ''}
-              </button>
+              <p className={styles.qSheetRemaining}>
+                {totalAnswered < questions.length
+                  ? `尚有 ${questions.length - totalAnswered} 題未完成`
+                  : '全部作答完成，可按右上角「交卷」'}
+              </p>
             )}
           </div>
         </div>
