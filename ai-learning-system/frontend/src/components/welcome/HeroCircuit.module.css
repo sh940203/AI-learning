@@ -1,0 +1,76 @@
+/* 主視覺背景電路線：畫布固定 600×500px，置中疊在 logo 後方 */
+.circuit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 600px;
+  height: 500px;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.line {
+  fill: none;
+  stroke: #1f5296;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.22;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.node {
+  fill: var(--color-bg-sidebar);
+  stroke: #1f5296;
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.drawn .line {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--duration-intro-step) var(--ease-out) calc(var(--i) * 90ms);
+}
+
+.drawn .node {
+  opacity: 0.35;
+  transition: opacity var(--duration-slow) var(--ease-out) calc(var(--duration-intro-step) + var(--i) * 90ms);
+}
+
+/* 光點：短虛線段沿電路線往外跑，週期前段跑完、其餘時間靜止 */
+.spark {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 2;
+  stroke-dashoffset: 0.06;
+  opacity: 0;
+}
+
+.drawn .spark {
+  animation: sparkRun var(--duration-signal) var(--ease-in-out) infinite backwards;
+  animation-delay: calc(var(--duration-intro-step) + var(--i) * 2s);
+}
+
+@keyframes sparkRun {
+  0% { stroke-dashoffset: 0.06; opacity: 0; }
+  5% { opacity: 1; }
+  30% { opacity: 1; }
+  34% { stroke-dashoffset: -1; opacity: 0; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spark {
+    display: none;
+  }
+}
+
+/* ══════════════ 手機版 (≤ 768px)：跟著 logo 縮小 ══════════════ */
+@media (max-width: 768px) {
+  .circuit {
+    transform: translate(-50%, -50%) scale(0.64);
+  }
+}

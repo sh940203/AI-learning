@@ -40,9 +40,10 @@
 }
 
 /* ── logo：SVG 線稿與 PNG 原圖疊在同一個框 ── */
+/* 寬度依畫面高度：logo 高度約占畫面 40% (寬高比 1201:1536) */
 .mark {
   position: relative;
-  width: 150px;
+  width: min(31vh, 260px);
   aspect-ratio: 1201 / 1536;
   transition: transform var(--duration-slow) var(--ease-out);
 }
@@ -173,8 +174,9 @@
 
 /* ══════════════ 手機版 (≤ 768px) ══════════════ */
 @media (max-width: 768px) {
+  /* 手機：logo 高度約占畫面 30% */
   .mark {
-    width: 110px;
+    width: min(23vh, 180px);
   }
 
   .name {

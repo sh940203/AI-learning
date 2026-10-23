@@ -62,6 +62,17 @@
   background-color: var(--color-primary-hover);
 }
 
+/* 首頁主視覺按鈕可見時隱藏 (由 Home 透過 Outlet context 回報) */
+.ctaHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.primaryBtn {
+  transition: background-color var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), visibility var(--duration-base);
+}
+
 .main {
   flex: 1;
 }

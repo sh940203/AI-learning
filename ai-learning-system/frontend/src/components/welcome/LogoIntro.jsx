@@ -16,7 +16,7 @@ const TIMELINE = [
 const FINISH_AT = 2950;
 
 // 首頁歡迎動畫：以 MIND SYNC logo 的電路與盾牌線條描繪成形
-// targetRef 指向首頁主視覺卡片中的 logo 圖片，結束時把 logo 移過去銜接
+// targetRef 指向首頁主視覺右側的 logo 圖片，結束時把 logo 移過去銜接
 // onReveal / onFinish 需由父層以 useCallback 固定，否則會重設開場計時器
 const LogoIntro = ({ targetRef, onReveal, onFinish }) => {
   const [step, setStep] = useState(-1);
