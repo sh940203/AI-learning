@@ -26,7 +26,7 @@ const LandingLayout = () => {
       <footer className={styles.footer}>
         <div className={styles.footerLeft}>
           <p className={styles.footerBrand}>AI智能輔助自主學習系統</p>
-          <p className={styles.footerCopy}>© 2024 AI智能輔助自主學習系統. 基於學術實踐與效能設計.</p>
+          <p className={styles.footerCopy}>© {new Date().getFullYear()} 靜宜大學資訊管理學系 畢業專題・AI智能輔助自主學習系統</p>
         </div>
         <div className={styles.footerRight}>
           <a href="#">使用條款</a>

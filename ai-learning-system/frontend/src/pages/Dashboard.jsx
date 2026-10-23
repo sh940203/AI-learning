@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, FileText, PlaySquare, FileCode, ExternalLink, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Lightbulb, FileText, PlaySquare, FileCode, ExternalLink, Bot, LogIn } from 'lucide-react';
 import TaskTimeline from '../components/TaskTimeline';
 import CalendarWidget from '../components/CalendarWidget';
 import { useAuth } from '../context/AuthContext';
@@ -29,74 +30,92 @@ const getRelativeDateStr = (offsetDays) => {
   return `${year}-${month}-${day}`;
 };
 
+// 新使用者的預設任務：引導統測考生走一次系統主線 (寫考卷 → 看錯題 → 問 AI → 強化練習)
 const defaultEvents = [
-  { 
-    id: 1, 
-    date: getRelativeDateStr(0), 
-    time: '21:00',
-    title: '計算機概論：期中專案繳交', 
+  {
+    id: 1,
+    date: getRelativeDateStr(0),
+    time: '20:00',
+    title: '完成一份統測考古題',
     type: 'red',
     isAllDay: false,
-    notes: '請確保所有的程式碼註釋完整並符合格式規範。包含專案雲端連結。',
-    location: '線上繳交系統',
+    notes: '到測驗中心寫「[114 統測] 專業科目(一)」，交卷後系統會自動分析錯題。',
     completed: false
   },
-  { 
-    id: 2, 
-    date: getRelativeDateStr(1), 
-    time: '18:00',
-    title: 'AI自主學習：深度學習模組', 
-    type: 'blue', // Changed from purple to blue
-    isAllDay: false,
-    notes: '完成第三單元的自我評測練習題。包含卷積神經網路概念。',
-    completed: false
-  },
-  { 
-    id: 3, 
-    date: getRelativeDateStr(8), 
-    time: '12:00',
-    title: '通識英語：單字複習', 
-    type: 'orange',
-    isAllDay: false,
-    notes: '利用系統生成的單字卡進行 15 分鐘複習。目標 50 個新單字。',
-    completed: false
-  },
-  { 
-    id: 4, 
-    date: getRelativeDateStr(2), 
-    time: '14:00',
-    title: '資料結構：紅黑樹討論', 
+  {
+    id: 2,
+    date: getRelativeDateStr(1),
+    time: '19:00',
+    title: '查看 AI 錯題分析',
     type: 'blue',
     isAllDay: false,
-    notes: '小組線上會議討論紅黑樹的實作細節。',
+    notes: '在分析報告點選錯題，讓 AI 解析關鍵謬誤與觀念盲點。',
     completed: false
   },
-  { 
-    id: 5, 
-    date: getRelativeDateStr(5), 
+  {
+    id: 3,
+    date: getRelativeDateStr(2),
     time: '19:00',
-    title: '課外活動：系學會大會', 
+    title: '問 AI 導師一個不懂的觀念',
+    type: 'orange',
+    isAllDay: false,
+    notes: '到 AI 自主學習中心提問，或直接拍照上傳題目。',
+    completed: false
+  },
+  {
+    id: 4,
+    date: getRelativeDateStr(3),
+    time: '19:00',
+    title: '用確保觀念生成題練 10 題',
     type: 'green',
     isAllDay: false,
-    notes: '討論下學期迎新活動企劃。',
-    location: '第一會議室',
+    notes: '在分析報告右側選「生成 10 題」，針對錯的單元再練一次。',
     completed: false
   }
 ];
 
+// 舊版 (v4) 預設範例任務的標題：升級時移除這些範例，只保留使用者自己新增的任務
+const LEGACY_SAMPLE_TITLES = [
+  '計算機概論：期中專案繳交',
+  'AI自主學習：深度學習模組',
+  '通識英語：單字複習',
+  '資料結構：紅黑樹討論',
+  '課外活動：系學會大會'
+];
+
+const EVENTS_STORAGE_KEY = 'ai_learning_events_v5';
+
+const loadInitialEvents = () => {
+  try {
+    const saved = localStorage.getItem(EVENTS_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+
+    // 從 v4 遷移：保留使用者自建任務，並補上新的預設引導任務
+    const legacy = localStorage.getItem('ai_learning_events_v4');
+    if (legacy) {
+      const userEvents = JSON.parse(legacy).filter(e => !LEGACY_SAMPLE_TITLES.includes(e.title));
+      const maxId = Math.max(0, ...userEvents.map(e => Number(e.id) || 0));
+      return [
+        ...userEvents,
+        ...defaultEvents.map((e, i) => ({ ...e, id: maxId + i + 1 }))
+      ];
+    }
+  } catch (e) {
+    console.error('讀取任務資料失敗，改用預設任務', e);
+  }
+  return defaultEvents;
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [greeting, setGreeting] = useState('');
   const [dateStr, setDateStr] = useState('');
-  const [events, setEvents] = useState(() => {
-    // Bust cache to v4 to clear out old static dates and load clean relative default events
-    const saved = localStorage.getItem('ai_learning_events_v4');
-    return saved ? JSON.parse(saved) : defaultEvents;
-  });
+  const [events, setEvents] = useState(loadInitialEvents);
   const [recentResources, setRecentResources] = useState([]);
 
   useEffect(() => {
-    localStorage.setItem('ai_learning_events_v4', JSON.stringify(events));
+    localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
   }, [events]);
 
   useEffect(() => {
@@ -158,9 +177,22 @@ const Dashboard = () => {
   return (
     <div className={styles.container}>
       <div className={styles.welcomeHeader}>
-        <h1>{greeting}，{user?.name || '陳嘉恩'}</h1>
+        <h1>{greeting}，{user?.name || '同學'}</h1>
         <p>今天是 {dateStr}。你有 {pendingCount} 個即將到期的任務。</p>
       </div>
+
+      {/* 訪客提示：未登入時說明哪些資料不會保存 */}
+      {!user && (
+        <div className={styles.guestBanner}>
+          <div>
+            <strong>目前為訪客模式</strong>
+            <span>可以先瀏覽與試寫考卷；登入後才會保存作答紀錄、錯題分析與 AI 對話。</span>
+          </div>
+          <button className={styles.guestBannerBtn} onClick={() => navigate('/login')}>
+            <LogIn size={15} /> 登入 / 註冊
+          </button>
+        </div>
+      )}
 
       <div className={styles.mainGrid}>
         {/* Left Column */}

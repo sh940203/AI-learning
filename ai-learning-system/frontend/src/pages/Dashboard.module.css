@@ -258,3 +258,53 @@
 .joinBtn:hover {
   background-color: var(--color-primary-hover);
 }
+
+/* ── 訪客模式提示 ── */
+.guestBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 14px var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  background-color: var(--color-primary-bg);
+  border: 1px solid #c7d7fe;
+  border-radius: var(--radius-md);
+}
+
+.guestBanner div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guestBanner strong {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+}
+
+.guestBanner span {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.guestBannerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+}
+
+.guestBannerBtn:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, Bell, Search, Menu, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, PenTool, Settings, Plus, HelpCircle, LogOut, LogIn, Bell, Search, Menu, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import QuestionFeedbackModal from '../components/QuestionFeedbackModal';
 import styles from './MainLayout.module.css';
@@ -88,9 +88,15 @@ const MainLayout = () => {
           <button className={styles.ghostBtn} title="協助中心">
             <HelpCircle size={18} /> <span className={styles.navItemText}>協助中心</span>
           </button>
-          <button className={styles.ghostBtn} onClick={handleLogout} title="登出">
-            <LogOut size={18} /> <span className={styles.navItemText}>登出</span>
-          </button>
+          {user ? (
+            <button className={styles.ghostBtn} onClick={handleLogout} title="登出">
+              <LogOut size={18} /> <span className={styles.navItemText}>登出</span>
+            </button>
+          ) : (
+            <button className={styles.ghostBtn} onClick={() => navigate('/login')} title="登入">
+              <LogIn size={18} /> <span className={styles.navItemText}>登入</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -103,9 +109,15 @@ const MainLayout = () => {
           </div>
           <div className={styles.headerActions}>
             <button className={styles.iconBtn}><Bell size={20} /></button>
-            <div className={styles.avatar} style={{display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', backgroundColor: 'var(--color-primary)'}}>
-              {user ? user.name.charAt(0) : ''}
-            </div>
+            {user ? (
+              <div className={styles.avatar} style={{display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', backgroundColor: 'var(--color-primary)', backgroundImage: 'none'}} title={user.name}>
+                {user.name.charAt(0)}
+              </div>
+            ) : (
+              <button className={styles.headerLoginBtn} onClick={() => navigate('/login')}>
+                <LogIn size={16} /> 登入
+              </button>
+            )}
           </div>
         </header>
         

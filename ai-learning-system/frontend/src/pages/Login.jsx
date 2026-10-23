@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
 const Login = () => {
-  const [activeTab, setActiveTab] = useState('register'); // 'login' or 'register'
+  const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'：回訪學生多為登入，預設停在登入
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -186,16 +186,16 @@ const Login = () => {
 
             <div className={styles.tabs}>
               <button
-                className={`${styles.tab} ${activeTab === 'register' ? styles.activeTab : ''}`}
-                onClick={() => { setActiveTab('register'); setErrors({}); }}
-              >
-                建立帳號
-              </button>
-              <button
                 className={`${styles.tab} ${activeTab === 'login' ? styles.activeTab : ''}`}
                 onClick={() => { setActiveTab('login'); setErrors({}); }}
               >
                 登入系統
+              </button>
+              <button
+                className={`${styles.tab} ${activeTab === 'register' ? styles.activeTab : ''}`}
+                onClick={() => { setActiveTab('register'); setErrors({}); }}
+              >
+                建立帳號
               </button>
             </div>
 
