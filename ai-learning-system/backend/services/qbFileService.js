@@ -121,6 +121,7 @@ class QBFileService {
     if (t === 2) return { code: 2, label: '單選題' };
     if (t === 1) return { code: 1, label: '是非題' };
     if (t === 3) return { code: 3, label: '多選題' };
+    if (t === 4) return { code: 4, label: '問答題' };
     return { code: t || 2, label: '單選題' };
   }
 
@@ -462,18 +463,33 @@ class QBFileService {
     return this.questionsById.get(id) || null;
   }
 
-  // 依照標籤/弱點概念 撈取母題 (用於「確保觀念生成題」)
+  // 選項是否有內容 (純圖片選項也算)
+  hasOptionContent(opt) {
+    if (opt.text && opt.text.trim()) return true;
+    return Boolean(opt.html && /<img/i.test(opt.html));
+  }
+
+  // 能否當成選擇題作答：至少 2 個有內容的選項，且正確答案對應到其中一個
+  // 題庫中的問答題 (題型 4) 與部分填充題 (題型 3，答案為「詞 | 詞」) 沒有選項，不能派給學生作答
+  isAnswerable(q) {
+    const filled = (q.options || []).filter(o => this.hasOptionContent(o));
+    return filled.length >= 2 && filled.some(o => o.isCorrect);
+  }
+
+  // 依照標籤/弱點概念 撈取母題 (用於「確保觀念生成題」)，只從可作答的選擇題中抽
   getQuestionsByTagsOrConcept(tags = [], count = 5) {
+    const pool = this.questions.filter(q => this.isAnswerable(q));
+
     if (!tags || tags.length === 0) {
       // 隨機抽選
-      const shuffled = [...this.questions].sort(() => 0.5 - Math.random());
+      const shuffled = [...pool].sort(() => 0.5 - Math.random());
       return shuffled.slice(0, count);
     }
 
     const normalizedTags = tags.map(t => String(t).trim().toLowerCase()).filter(Boolean);
 
     // 計算關聯權重分數
-    const scored = this.questions.map(q => {
+    const scored = pool.map(q => {
       let score = 0;
       const fullStr = `${q.textbook} ${q.chapterName} ${q.sectionName} ${q.questionText} ${q.explanationText}`.toLowerCase();
       
@@ -496,14 +512,14 @@ class QBFileService {
     if (matches.length > 0) {
       // 補足數量
       const matchedIds = new Set(matches.map(m => m.question.id));
-      const remaining = this.questions.filter(q => !matchedIds.has(q.id));
+      const remaining = pool.filter(q => !matchedIds.has(q.id));
       const shuffled = remaining.sort(() => 0.5 - Math.random());
       const filled = [...matches.map(m => m.question), ...shuffled.slice(0, count - matches.length)];
       return filled;
     }
 
     // 若完全無匹配，回傳隨機
-    return [...this.questions].sort(() => 0.5 - Math.random()).slice(0, count);
+    return [...pool].sort(() => 0.5 - Math.random()).slice(0, count);
   }
 
   // 依學生問題在題庫中檢索上下文 (用於「AI自主學習中心」)
