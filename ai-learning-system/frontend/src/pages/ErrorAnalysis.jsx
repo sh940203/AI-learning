@@ -107,9 +107,13 @@ const ErrorAnalysis = () => {
     const load = async () => {
       try {
         const list = await fetchUserExamProgress();
-        setCompletedExams(list.filter(p => p.status === 'completed'));
-        if (!selectedExamId && list.filter(p => p.status === 'completed').length > 0) {
-          setSelectedExamId(list.filter(p => p.status === 'completed')[0].examId);
+        const completed = list.filter(p => p.status === 'completed');
+        setCompletedExams(completed);
+        // 未指定考卷 (網址沒有 ?examId=) 時，預設顯示最近一次完成的考卷
+        if (!selectedExamId && completed.length > 0) {
+          const finishedAt = p => new Date(p.completedAt || p.updatedAt || 0).getTime();
+          const latest = completed.reduce((a, b) => (finishedAt(b) > finishedAt(a) ? b : a));
+          setSelectedExamId(latest.examId);
         }
       } catch {} finally {
         setExamsLoaded(true);

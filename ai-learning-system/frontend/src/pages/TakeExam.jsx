@@ -71,12 +71,12 @@ const TakeExam = () => {
                 });
                 setSelectedAnswers({}); // 清除前端選項快取
               } else {
-                navigate('/error-analysis');
+                navigate(`/error-analysis?examId=${examId}`);
                 return;
               }
             } else {
               alert('這份考卷已經完成，即將跳轉至分析報告！');
-              navigate('/error-analysis');
+              navigate(`/error-analysis?examId=${examId}`);
               return;
             }
           }
@@ -311,7 +311,7 @@ const TakeExam = () => {
       });
       
       setShowSubmitConfirm(false);
-      navigate('/error-analysis');
+      navigate(`/error-analysis?examId=${examId}`);
     } catch (err) {
       console.error('交卷提交失敗:', err);
       alert('提交考卷失敗，請檢查網路連線後重試！');
@@ -341,7 +341,7 @@ const TakeExam = () => {
         answers: formattedAnswers
       });
       alert('⏰ 考試時間截止！系統已為您自動交卷。');
-      navigate('/error-analysis');
+      navigate(`/error-analysis?examId=${examId}`);
     } catch (err) {
       console.error('自動交卷失敗:', err);
       navigate('/tests');
