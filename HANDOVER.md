@@ -82,6 +82,9 @@
    - 第 4 批 手機版：底部 5 分頁導覽列、作答頁單題＋題號面板＋左右滑動切題、首頁「繼續作答」卡與本週行事曆、AI 導師歷史對話抽屜、錯題頁三分段、測驗中心卡片列、登入頁表單置頂。**桌機版版面不變。**
 
    - **首頁 logo 開場動畫**（`components/welcome/LogoIntro.jsx`、`LogoMark.jsx`、`LogoSignal.jsx`、`logoPaths.js`）：以 `logo.png` 描出的 SVG 線稿分段描繪（電路→盾牌→箭頭），約 2.9 秒後換成 PNG 並移到主視覺右側；之後 logo 每 6 秒有光點沿電路跑到箭頭。同一次瀏覽器只播一次，記在 `sessionStorage` 的 `homeIntroSeen`（與登入頁的 `introSeen` 分開）。線稿座標與 PNG 原始尺寸 1201×1536 對齊，**更換 logo 圖檔時需重描 `logoPaths.js`**。新增 token：`--duration-signal`。
+   - **組員回報修正**：
+     - 確保觀念生成題出現沒有選項的題目：《題庫資料庫》有 125 題不能當選擇題作答（題型 4 問答題 73 題、無選項的填充題等），`qbFileService.isAnswerable()` 抽題時已排除，可抽題目剩 2,524 題；題型 4 標籤改為「問答題」。共用 MongoDB 中已存入的 21 題同步設為 `isActive: false`（2026-10-24），**先前生成的 9 份微測驗仍含這些題目，請重新生成**。
+     - 交卷後分析報告跳到別張考卷：作答頁導向改為 `/error-analysis?examId=<考卷>`；未指定時預設最近一次完成的考卷。
    - **首頁改版**（`Home.jsx`、`components/welcome/HeroCircuit.jsx`）：主視覺改為左標題、右大 logo＋往外延伸的電路線；功能區改用系統實際截圖（`assets/home/`，`*-thumb.webp` 為卡片縮圖、其餘為點擊放大的完整圖，**介面改版後需重拍**）；學習循環改為循環圖、題庫改為大數字。開場結束後下方區塊才漸顯。頂部「開始使用」在主視覺按鈕可見時隱藏（`LandingLayout` 以 Outlet context 接收狀態）。
    - **整併重複按鈕**：登入頁移除頂部「登入／註冊」與無作用的 Google／GitHub；測驗中心移除「前往錯題分析報告」；錯題分析移除右上「AI 錯題分析」（改用錯題卡上的「召喚 AI 深入解析此題」）；手機作答頁的題號面板不再放交卷，只顯示未完成題數；側欄移除無作用的「開始新課程」「協助中心」。
    - **登入頁歡迎動畫**（`components/welcome/BookIntro.jsx`、`BookStage.jsx`）：題目卡片翻飛疊成書的開場（約 3.5 秒，可按略過或 Esc，同一次瀏覽器只播一次，記在 `sessionStorage` 的 `introSeen`；減少動態效果時不播），之後左欄循環翻頁與飛出小卡；系統公告改為頂部「公告」按鈕彈窗。新增 token：`--duration-intro-step`、`--duration-page-flip`、`--duration-card-fly`。
