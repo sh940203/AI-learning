@@ -87,6 +87,7 @@
      - 交卷後分析報告跳到別張考卷：作答頁導向改為 `/error-analysis?examId=<考卷>`；未指定時預設最近一次完成的考卷。
    - **首頁改版**（`Home.jsx`、`components/welcome/HeroCircuit.jsx`）：主視覺改為左標題、右大 logo＋往外延伸的電路線；功能區改用系統實際截圖（`assets/home/`，`*-thumb.webp` 為卡片縮圖、其餘為點擊放大的完整圖，**介面改版後需重拍**）；學習循環改為循環圖、題庫改為大數字。開場結束後下方區塊才漸顯。頂部「開始使用」在主視覺按鈕可見時隱藏（`LandingLayout` 以 Outlet context 接收狀態）。
    - **整併重複按鈕**：登入頁移除頂部「登入／註冊」與無作用的 Google／GitHub；測驗中心移除「前往錯題分析報告」；錯題分析移除右上「AI 錯題分析」（改用錯題卡上的「召喚 AI 深入解析此題」）；手機作答頁的題號面板不再放交卷，只顯示未完成題數；側欄移除無作用的「開始新課程」「協助中心」。
+   - **移除後台「AI 測試主控台」**（2026-11-02）：該頁呼叫的 `/api/ai/generate` 從未實作，只會顯示寫死的會計假題目，且與「觀念生成題不使用 AI、只從題庫選題」的方向相反。已刪除 `pages/admin/AITestConsole.jsx`、樣式檔、`/admin/ai-test` 路由與後台側欄連結；其他後台頁面與後端不受影響。
    - **登入頁歡迎動畫**（`components/welcome/BookIntro.jsx`、`BookStage.jsx`）：題目卡片翻飛疊成書的開場（約 3.5 秒，可按略過或 Esc，同一次瀏覽器只播一次，記在 `sessionStorage` 的 `introSeen`；減少動態效果時不播），之後左欄循環翻頁與飛出小卡；系統公告改為頂部「公告」按鈕彈窗。新增 token：`--duration-intro-step`、`--duration-page-flip`、`--duration-card-fly`。
    - **後端 API 用量統計修正**（`services/metricService.js`、`server.js`）：多個請求同時更新當日 `SystemMetric` 會觸發 `VersionError` 而漏算，改用 MongoDB 原子累加 (`$inc`)；已以 50 個併發請求驗證計數無遺漏。
 

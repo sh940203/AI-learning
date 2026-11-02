@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen, AlertCircle, BarChart2, Sparkles, MessageSquare, Layers } from 'lucide-react';
+import { LineChart, Database, Megaphone, Settings, LogOut, HelpCircle, Bell, Search, Menu, BookOpen, AlertCircle, BarChart2, MessageSquare, Layers } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './AdminLayout.module.css';
 
@@ -43,9 +43,6 @@ const AdminLayout = () => {
           </NavLink>
           <NavLink to="/admin/question-bank-files" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題庫資料庫檔案管理">
             <Layers size={20} /> <span className={styles.navItemText}>題庫資料庫檔案管理</span>
-          </NavLink>
-          <NavLink to="/admin/ai-test" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="AI 出題測試台">
-            <Sparkles size={20} /> <span className={styles.navItemText}>AI 出題測試台</span>
           </NavLink>
           <NavLink to="/admin/feedback" className={({isActive}) => isActive ? `${styles.navItem} ${styles.active}` : styles.navItem} title="題目報錯與反饋">
             <MessageSquare size={20} /> <span className={styles.navItemText}>題目報錯與反饋</span>
