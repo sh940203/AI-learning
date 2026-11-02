@@ -19,7 +19,6 @@ import ExamSetup from './pages/admin/ExamSetup';
 import Announcements from './pages/admin/Announcements';
 import KnowledgeBaseManager from './pages/admin/KnowledgeBaseManager';
 import QuestionBankFilesManager from './pages/admin/QuestionBankFilesManager';
-import AITestConsole from './pages/admin/AITestConsole';
 import FeedbackDashboard from './pages/admin/FeedbackDashboard';
 import UnansweredLogs from './pages/admin/UnansweredLogs';
 import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
@@ -67,7 +66,6 @@ function App() {
             <Route path="announcements" element={<Announcements />} />
             <Route path="knowledge" element={<KnowledgeBaseManager />} />
             <Route path="question-bank-files" element={<QuestionBankFilesManager />} />
-            <Route path="ai-test" element={<AITestConsole />} />
             <Route path="feedback" element={<FeedbackDashboard />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
             <Route path="feedbacks" element={<FeedbackManager />} />
